@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<module cursive.leiningen.project.LeiningenProjectsManager.displayName="polvo/firestore-clj:0.1.0-SNAPSHOT" cursive.leiningen.project.LeiningenProjectsManager.isLeinModule="true" type="JAVA_MODULE" version="4">
+  <component name="NewModuleRootManager">
+    <output url="file://$MODULE_DIR$/target/classes" />
+    <output-test url="file://$MODULE_DIR$/target/classes" />
+    <exclude-output />
+    <content url="file://$MODULE_DIR$">
+      <sourceFolder url="file://$MODULE_DIR$/src" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/resources" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/dev-resources" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/test" isTestSource="true" />
+      <excludeFolder url="file://$MODULE_DIR$/target" />
+    </content>
+    <orderEntry type="inheritedJdk" />
+    <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="library" name="Leiningen: clojure-complete:0.2.5" level="project" />
+    <orderEntry type="library" name="Leiningen: com.fasterxml.jackson.core/jackson-core:2.9.9" level="project" />
+    <orderEntry type="library" name="Leiningen: com.google.android/annotations:4.1.1.4" level="project" />
+    <orderEntry type="library" name="Leiningen: com.google.api-client/google-api-client-gson:1.30.1" level="project" />
+    <orderEntry type="library" name="Leiningen: com.google.api-client/google-api-client:1.30.1" level="project" />
+    <orderEntry type="library" name="Leiningen: com.google.api.grpc/proto-google-cloud-firestore-admin-v1:1.31.0" level="project" />
+    <orderEntry type="library" name="Leiningen: com.google.api.grpc/proto-google-cloud-firestore-v1:1.31.0" level="project" />
+    <orderEntry type="library" name="Leiningen: com.google.api.grpc/proto-google-cloud-firestore-v1beta1:0.84.0" level="project" />
+    <orderEntry type="library" name="Leiningen: com.google.api.grpc/proto-google-common-protos:1.17.0" level="project" />
+    <orderEntry type="library" name="Leiningen: com.google.api.grpc/proto-google-iam-v1:0.12.0" level="project" />
+    <orderEntry type="library" name="Leiningen: com.google.api/api-common:1.8.1" level="project" />
+    <orderEntry type="library" name="Leiningen: com.google.api/gax-grpc:1.49.1" level="project" />
+    <orderEntry type="library" name="Leiningen: com.google.api/gax-httpjson:0.65.1" level="project" />
+    <orderEntry type="library" name="Leiningen: com.google.api/gax:1.49.1" level="project" />
+    <orderEntry type="library" name="Leiningen: com.google.apis/google-api-services-storage:v1-rev20190624-1.30.1" level="project" />
+    <orderEntry type="library" name="Leiningen: com.google.auth/google-auth-library-credentials:0.17.1" level="project" />
+    <orderEntry type="library" name="Leiningen: com.google.auth/google-auth-library-oauth2-http:0.17.1" level="project" />
+    <orderEntry type="library" name="Leiningen: com.google.auto.value/auto-value-annotations:1.6.6" level="project" />
+    <orderEntry type="library" name="Leiningen: com.google.cloud/google-cloud-core-grpc:1.91.3" level="project" />
+    <orderEntry type="library" name="Leiningen: com.google.cloud/google-cloud-core-http:1.90.0" level="project" />
+    <orderEntry type="library" name="Leiningen: com.google.cloud/google-cloud-core:1.90.0" level="project" />
+    <orderEntry type="library" name="Leiningen: com.google.cloud/google-cloud-firestore:1.31.0" level="project" />
+    <orderEntry type="library" name="Leiningen: com.google.cloud/google-cloud-storage:1.91.0" level="project" />
+    <orderEntry type="library" name="Leiningen: com.google.code.findbugs/jsr305:3.0.2" level="project" />
+    <orderEntry type="library" name="Leiningen: com.google.code.gson/gson:2.8.5" level="project" />
+    <orderEntry type="library" name="Leiningen: com.google.errorprone/error_prone_annotations:2.3.2" level="project" />
+    <orderEntry type="library" name="Leiningen: com.google.firebase/firebase-admin:6.12.1" level="project" />
+    <orderEntry type="library" name="Leiningen: com.google.guava/guava:26.0-android" level="project" />
+    <orderEntry type="library" name="Leiningen: com.google.http-client/google-http-client-appengine:1.31.0" level="project" />
+    <orderEntry type="library" name="Leiningen: com.google.http-client/google-http-client-gson:1.30.1" level="project" />
+    <orderEntry type="library" name="Leiningen: com.google.http-client/google-http-client-jackson2:1.30.1" level="project" />
+    <orderEntry type="library" name="Leiningen: com.google.http-client/google-http-client:1.30.1" level="project" />
+    <orderEntry type="library" name="Leiningen: com.google.j2objc/j2objc-annotations:1.3" level="project" />
+    <orderEntry type="library" name="Leiningen: com.google.oauth-client/google-oauth-client:1.30.1" level="project" />
+    <orderEntry type="library" name="Leiningen: com.google.protobuf/protobuf-java-util:3.9.1" level="project" />
+    <orderEntry type="library" name="Leiningen: com.google.protobuf/protobuf-java:3.10.0" level="project" />
+    <orderEntry type="library" name="Leiningen: commons-codec:1.11" level="project" />
+    <orderEntry type="library" name="Leiningen: commons-logging:1.2" level="project" />
+    <orderEntry type="library" name="Leiningen: io.grpc/grpc-alts:1.23.0" level="project" />
+    <orderEntry type="library" name="Leiningen: io.grpc/grpc-api:1.23.0" level="project" />
+    <orderEntry type="library" name="Leiningen: io.grpc/grpc-auth:1.23.0" level="project" />
+    <orderEntry type="library" name="Leiningen: io.grpc/grpc-context:1.19.0" level="project" />
+    <orderEntry type="library" name="Leiningen: io.grpc/grpc-core:1.23.0" level="project" />
+    <orderEntry type="library" name="Leiningen: io.grpc/grpc-grpclb:1.23.0" level="project" />
+    <orderEntry type="library" name="Leiningen: io.grpc/grpc-netty-shaded:1.23.0" level="project" />
+    <orderEntry type="library" name="Leiningen: io.grpc/grpc-protobuf-lite:1.23.0" level="project" />
+    <orderEntry type="library" name="Leiningen: io.grpc/grpc-protobuf:1.23.0" level="project" />
+    <orderEntry type="library" name="Leiningen: io.grpc/grpc-stub:1.23.0" level="project" />
+    <orderEntry type="library" name="Leiningen: io.netty/netty-buffer:4.1.34.Final" level="project" />
+    <orderEntry type="library" name="Leiningen: io.netty/netty-codec-http:4.1.34.Final" level="project" />
+    <orderEntry type="library" name="Leiningen: io.netty/netty-codec:4.1.34.Final" level="project" />
+    <orderEntry type="library" name="Leiningen: io.netty/netty-common:4.1.34.Final" level="project" />
+    <orderEntry type="library" name="Leiningen: io.netty/netty-handler:4.1.34.Final" level="project" />
+    <orderEntry type="library" name="Leiningen: io.netty/netty-resolver:4.1.34.Final" level="project" />
+    <orderEntry type="library" name="Leiningen: io.netty/netty-transport:4.1.34.Final" level="project" />
+    <orderEntry type="library" name="Leiningen: io.opencensus/opencensus-api:0.21.0" level="project" />
+    <orderEntry type="library" name="Leiningen: io.opencensus/opencensus-contrib-grpc-metrics:0.21.0" level="project" />
+    <orderEntry type="library" name="Leiningen: io.opencensus/opencensus-contrib-grpc-util:0.24.0" level="project" />
+    <orderEntry type="library" name="Leiningen: io.opencensus/opencensus-contrib-http-util:0.21.0" level="project" />
+    <orderEntry type="library" name="Leiningen: io.perfmark/perfmark-api:0.17.0" level="project" />
+    <orderEntry type="library" name="Leiningen: javax.annotation/javax.annotation-api:1.3.2" level="project" />
+    <orderEntry type="library" name="Leiningen: nrepl:0.6.0" level="project" />
+    <orderEntry type="library" name="Leiningen: org.apache.commons/commons-lang3:3.5" level="project" />
+    <orderEntry type="library" name="Leiningen: org.apache.httpcomponents/httpclient:4.5.8" level="project" />
+    <orderEntry type="library" name="Leiningen: org.apache.httpcomponents/httpcore:4.4.11" level="project" />
+    <orderEntry type="library" name="Leiningen: org.checkerframework/checker-compat-qual:2.5.2" level="project" />
+    <orderEntry type="library" name="Leiningen: org.clojure/clojure:1.10.1" level="project" />
+    <orderEntry type="library" name="Leiningen: org.clojure/core.specs.alpha:0.2.44" level="project" />
+    <orderEntry type="library" name="Leiningen: org.clojure/spec.alpha:0.2.176" level="project" />
+    <orderEntry type="library" name="Leiningen: org.codehaus.mojo/animal-sniffer-annotations:1.14" level="project" />
+    <orderEntry type="library" name="Leiningen: org.slf4j/slf4j-api:1.7.25" level="project" />
+    <orderEntry type="library" name="Leiningen: org.threeten/threetenbp:1.3.3" level="project" />
+  </component>
+</module>
