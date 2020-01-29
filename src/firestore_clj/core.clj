@@ -2,11 +2,22 @@
   (:require [clojure.java.io :as io]
             [clojure.spec.alpha :as s])
   (:import (com.google.auth.oauth2 GoogleCredentials)
-           (com.google.cloud.firestore Firestore QuerySnapshot CollectionReference EventListener DocumentReference DocumentSnapshot Query$Direction FieldValue)
+           (com.google.cloud.firestore Firestore QuerySnapshot CollectionReference EventListener DocumentReference DocumentSnapshot Query$Direction FieldValue Query ListenerRegistration)
            (com.google.firebase FirebaseApp FirebaseOptions FirebaseOptions)
            (com.google.firebase.cloud FirestoreClient)
-           (java.util HashMap)
-           (com.google.cloud Timestamp)))
+           (java.util HashMap List)
+           (com.google.cloud Timestamp)
+           (com.google.api.core ApiFuture)))
+
+(defn- build-hash-map
+  "Helper for build java.util.HashMap without reflection."
+  [m]
+  (reduce (fn [^HashMap h [k v]]
+            (do
+              (.put h k v)
+              h))
+          (HashMap.)
+          m))
 
 (defn client-with-creds
   "Creates a client from a credentials JSON file."
@@ -30,11 +41,11 @@
 
 (defn- document-snapshot->data
   "Gets a DocumentSnapshot's underlying data"
-  [s]
+  [^DocumentSnapshot s]
   (->> (.getData s)
        (map (fn [[k v]]
               (if (instance? Timestamp v)
-                [k (.toDate v)]
+                [k (.toDate ^Timestamp v)]
                 [k v])))
        (into {})))
 
@@ -45,31 +56,32 @@
     (document-snapshot->data s)
     (->> s
          (map (fn [d]
-                [(.getId d) (document-snapshot->data d)]))
+                [(.getId ^DocumentSnapshot d) (document-snapshot->data d)]))
          (into {}))))
 
 (defn pull
-  "Pulls data from a DocumentReference, CollectionReference or Query."
+  "Pulls data from a DocumentReference or Query."
   [q]
-  (->> q
-       (.get)
-       (.get)
-       snapshot->data))
+  (if (instance? Query q)
+    (snapshot->data (.get ^ApiFuture (.get ^Query q)))
+    (snapshot->data (.get ^ApiFuture (.get ^DocumentReference q)))))
 
 (defn add-listener
-  "Adds a snapshot listener to a DocumentReference/CollectionReference/Query.
+  "Adds a snapshot listener to a DocumentReference or Query.
 
   Listener is a fn of arity 2. First arg is the QuerySnapshot, second arg is a FirestoreException.
   Returns an ListenerRegistration object."
   [q f]
-  (.addSnapshotListener q
-                        (reify
-                          EventListener
-                          (onEvent [_ s e]
-                            (f s e)))))
+  (let [listener (reify
+                   EventListener
+                   (onEvent [_ s e]
+                     (f s e)))]
+    (if (instance? Query q)
+      (.addSnapshotListener ^Query q listener)
+      (.addSnapshotListener ^DocumentReference q listener))))
 
 (defn ->atom
-  "Returns an atom holding the latest value of a CollectionReference/DocumentReference/Query."
+  "Returns an atom holding the latest value of a DocumentReference or Query."
   ([q]
    (->atom q identity))
   ([q error-handler]
@@ -89,7 +101,7 @@
 (defn detach
   "Detaches an atom built with ->atom."
   [a]
-  (.remove (:registration (meta a))))
+  (.remove ^ListenerRegistration (:registration (meta a))))
 
 (defn collection
   "Returns a CollectionReference for the collection of given name."
@@ -107,14 +119,14 @@
   (.getId d))
 
 (defn add!
-  "Adds a document to a collection. Its id will be automatically generated. This is a blocking operation."
+  "Adds a document to a collection. Its id will be automatically generated."
   [^CollectionReference c m]
-  (-> c (.add (HashMap. m)) (.get)))
+  (-> c (.add (build-hash-map m)) (.get)))
 
 (defn set!
-  "Creates or overwrites a document. This is a blocking operation."
+  "Creates or overwrites a document."
   [^CollectionReference c doc-name m]
-  (-> c (.document doc-name) (.set (HashMap. m)) (.get)))
+  (-> c (.document doc-name) (.set (build-hash-map m)) (.get)))
 
 (defn delete!
   "Deletes a document."
@@ -124,7 +136,7 @@
 (defn merge!
   "Updates fields of a document."
   [^DocumentReference d m]
-  (.get (.update d (HashMap. m))))
+  (.get (.update d (build-hash-map m))))
 
 (declare delete)
 
@@ -143,37 +155,37 @@
 
 (defn filter=
   "Filters where field = value. A map may be used for checking multiple equalities."
-  ([q m]
+  ([^Query q m]
    (reduce (fn [q' [field value]]
              (filter= q' field value))
            q
            m))
-  ([q field value]
+  ([^Query q ^String field value]
    (.whereEqualTo q field value)))
 
 (defn filter<
   "Filters where field < value."
-  [q field value]
+  [^Query q ^String field value]
   (.whereLessThan q field value))
 
 (defn filter<=
   "Filters where field <= value."
-  [q field value]
+  [^Query q ^String field value]
   (.whereLessThanOrEqualTo q field value))
 
 (defn filter>
   "Filters where field > value."
-  [q field value]
+  [^Query q ^String field value]
   (.whereGreaterThan q field value))
 
 (defn filter>=
   "Filters where field >= value."
-  [q field value]
+  [^Query q ^String field value]
   (.whereGreaterThanOrEqualTo q field value))
 
 (defn take
   "Limits results to a certain number."
-  [q n]
+  [^Query q n]
   (.limit q n))
 
 (defn array-union
@@ -194,26 +206,28 @@
 (defn inc
   "Used with `set!` and `merge!`. Increments a numeric field."
   [v]
-  (FieldValue/increment v))
+  (if (int? v)
+    (FieldValue/increment ^long v)
+    (FieldValue/increment ^double v)))
 
 (defn delete
   "Used with `set!` and `merge!`. A sentinel value that marks a field for deletion."
   []
   (FieldValue/delete))
 
-(defn in
+(defn filter-in
   "Filters where field is one of the values in arr."
-  [q field arr]
+  [^Query q ^String field ^List arr]
   (.whereIn q field arr))
 
-(defn contains
+(defn filter-contains
   "Filters where field contains value."
-  [q field value]
+  [^Query q ^String field value]
   (.whereArrayContains q field value))
 
-(defn contains-any
+(defn filter-contains-any
   "Filters where field contains one of the values in arr."
-  [q field arr]
+  [^Query q ^String field ^List arr]
   (.whereArrayContainsAny q field arr))
 
 (s/def ::direction #{:asc :desc})
@@ -224,16 +238,16 @@
 (defn order-by
   "Orders by a sequence of fields with optional directions. Notice that ordering by multiple fields
   requires creation of a composite index."
-  [q & ordering]
+  [^Query q & ordering]
   (let [conformed (s/conform ::ordering ordering)]
     (if (= conformed ::s/invalid)
       (throw (ex-info "Invalid ordering: " (s/explain-str ::ordering ordering)))
-      (reduce (fn [q' [spec value]]
+      (reduce (fn [^Query q' [spec value]]
                 (case spec
-                  :field (.orderBy q' value)
+                  :field (.orderBy q' ^String value)
                   :field-direction (let [{:keys [field direction]} value]
                                      (if (= direction :desc)
-                                       (.orderBy q' field Query$Direction/DESCENDING)
-                                       (.orderBy q' field)))))
+                                       (.orderBy q' ^String field Query$Direction/DESCENDING)
+                                       (.orderBy q' ^String field)))))
               q
               conformed))))

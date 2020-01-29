@@ -1,6 +1,13 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
+## 0.1.3 - 2020-01-29
+### Added
+* All functions now have proper type hints to avoid reflection.
+
+### Modified
+* Renamed `in`, `contains`, `contains` any, adding a `filter-` prefix.
+
 ## 0.1.2 - 2020-01-29
 ### Added
 * Converts `com.google.cloud.Timestamp` to `java.util.Date` when receiving data.
