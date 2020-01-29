@@ -7,7 +7,7 @@ This library is a thin wrapper over `com.google.firebase/firebase-admin`.
 
 Add to your `project.clj` dependencies:
 
-```[polvo/firestore-clj "0.1.0"]```
+```[polvo/firestore-clj "0.1.1"]```
 
 You can read the docs on [clj-doc](https://cljdoc.org/d/polvo/firestore-clj/0.1.1/doc/readme).
 
@@ -29,38 +29,36 @@ you can just provide the project-id using `default-client`:
 
 ## Writing data
 
-We currently provide the methods `add`, `set`, `update` and `delete`. 
-Additionally, the functions `server-timestamp`, `increment`, `field-delete`, 
-`array-union` and `array-remove` can be used as special values on a `set` or `update`. Some examples:
+We currently provide the methods `add!`, `set!`, `assoc!`, `dissoc!`, `merge!` and `delete!`. 
+Additionally, the functions `server-timestamp`, `inc`, `field-delete`, 
+`array-union` and `array-remove` can be used as special values on a `set!`, `merge!` and `assoc!`. Some examples:
 
 ```clojure
 ; creates new document with random id
 (-> (collection db "accounts")
-    (add {"name"     "account-x"
-          "exchange" "bitmex"}))
+    (add! {"name"     "account-x"
+           "exchange" "bitmex"}))
 
 ; creates new document with id "xxxx"
 (-> (collection db "accounts")
-    (set "xxxx" {"name"       "account-x"
-                 "exchange"   "bitmex"
-                 "start_date" (server-timestamp)
-                 "trade_count" 0}))
+    (set! "xxxx" {"name"        "account-x"
+                  "exchange"    "bitmex"
+                  "start_date"  (server-timestamp)}))
 
-; updates a single field
-(-> (collection db "accounts")
-    (document "xxxx")
-    (update "trade_count" (increment 1)))
+(def doc (document "xxx"))
 
-; updates multiple fields
-(-> (collection db "accounts")
-    (document "xxxx")
-    (update {"trade_count" (field-delete)
-             "active"      true}))
+; updates a single field (could be many)
+(assoc! doc "trade_count" 0)
+
+; updates multiple fields (uses a map)
+(merge! doc {"trade_count" (inc 1)
+             "active"      true})
+
+; deletes fields
+(dissoc! doc "trade_count" "active")
 
 ; deletes it
-(-> (collection db "accounts")
-    (document "xxxx")
-    (delete))
+(delete! doc)
 ```
 
 ## Queries

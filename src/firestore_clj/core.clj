@@ -95,20 +95,40 @@
   [^DocumentReference d]
   (.getId d))
 
-(defn add
+(defn add!
   "Adds a document to a collection. Its id will be automatically generated. This is a blocking operation."
   [^CollectionReference c m]
   (-> c (.add (HashMap. m)) (.get)))
 
-(defn set
+(defn set!
   "Creates or overwrites a document. This is a blocking operation."
   [^CollectionReference c doc-name m]
   (-> c (.document doc-name) (.set (HashMap. m)) (.get)))
 
-(defn delete
+(defn delete!
   "Deletes a document."
   [^DocumentReference d]
   (-> (.delete d) (.get)))
+
+(defn merge!
+  "Updates fields of a document."
+  [^DocumentReference d m]
+  (.get (.update d (HashMap. m))))
+
+(declare field-delete)
+
+(defn assoc!
+  "Associates new keys and values."
+  [^DocumentReference d & kvs]
+  (merge! d (apply hash-map kvs)))
+
+(defn dissoc!
+  "Deletes keys."
+  [^DocumentReference d & ks]
+  (->> ks
+       (map (fn [k] [k (field-delete)]))
+       (into {})
+       (merge! d)))
 
 (defn filter=
   "Filters where field = value. A map may be used for checking multiple equalities."
@@ -145,35 +165,28 @@
   [q n]
   (.limit q n))
 
-(defn update
-  "Updates fields of a document."
-  ([^DocumentReference d f v]
-   (update d {f v}))
-  ([^DocumentReference d m]
-   (.get (.update d (HashMap. m)))))
-
 (defn array-union
-  "Used with `set` and `update`. Adds unique values to an array field."
+  "Used with `set!` and `merge!`. Adds unique values to an array field."
   [& vs]
   (FieldValue/arrayUnion (into-array vs)))
 
 (defn array-remove
-  "Used with `set` and `update`. Removes values from an array field."
+  "Used with `set!` and `merge!`. Removes values from an array field."
   [& vs]
   (FieldValue/arrayRemove (into-array vs)))
 
 (defn server-timestamp
-  "Used with `set` and `update`. Timestamp for when the update operation is performed on server."
+  "Used with `set!` and `merge!`. Timestamp for when the update operation is performed on server."
   []
   (FieldValue/serverTimestamp))
 
-(defn increment
-  "Used with `set` and `update`. Increments a numeric field."
+(defn inc
+  "Used with `set!` and `merge!`. Increments a numeric field."
   [v]
   (FieldValue/increment v))
 
 (defn field-delete
-  "A sentinel value that marks a field for deletion."
+  "Used with `set!` and `merge!`. A sentinel value that marks a field for deletion."
   []
   (FieldValue/delete))
 
