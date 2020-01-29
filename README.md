@@ -45,7 +45,8 @@ Additionally, the functions `server-timestamp`, `inc`, `delete`,
                   "exchange"    "bitmex"
                   "start_date"  (server-timestamp)}))
 
-(def doc (document "xxx"))
+(def doc (-> (collection db "accounts") 
+             (document "xxx")))
 
 ; updates a single field (could be many)
 (assoc! doc "trade_count" 0)
