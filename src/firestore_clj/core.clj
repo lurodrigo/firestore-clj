@@ -2,7 +2,7 @@
   (:require [clojure.java.io :as io]
             [clojure.spec.alpha :as s])
   (:import (com.google.auth.oauth2 GoogleCredentials)
-           (com.google.cloud.firestore Firestore QuerySnapshot CollectionReference EventListener DocumentReference DocumentSnapshot Query$Direction)
+           (com.google.cloud.firestore Firestore QuerySnapshot CollectionReference EventListener DocumentReference DocumentSnapshot Query$Direction FieldValue)
            (com.google.firebase FirebaseApp FirebaseOptions FirebaseOptions)
            (com.google.firebase.cloud FirestoreClient)
            (java.util HashMap)))
@@ -58,7 +58,7 @@
                             (f s e)))))
 
 (defn ->atom
-  "Returns a promise yielding an atom holding the latest value of a CollectionReference/DocumentReference/Query."
+  "Returns an atom holding the latest value of a CollectionReference/DocumentReference/Query."
   ([q]
    (->atom q identity))
   ([q error-handler]
@@ -73,7 +73,7 @@
                                        (do
                                          (remove-watch a :waiting-first-val)
                                          (deliver d a))))
-     d)))
+     @d)))
 
 (defn detach
   "Detaches an atom built with ->atom."
@@ -89,6 +89,11 @@
   "Gets a document from a collection reference."
   ^DocumentReference [^CollectionReference c ^String id]
   (.document c id))
+
+(defn id
+  "Returns the id of a document, given a reference."
+  [^DocumentReference d]
+  (.getId d))
 
 (defn add
   "Adds a document to a collection. Its id will be automatically generated. This is a blocking operation."
@@ -139,6 +144,38 @@
   "Limits results to a certain number."
   [q n]
   (.limit q n))
+
+(defn update
+  "Updates fields of a document."
+  ([^DocumentReference d f v]
+   (update d {f v}))
+  ([^DocumentReference d m]
+   (.get (.update d (HashMap. m)))))
+
+(defn array-union
+  "Used with `set` and `update`. Adds unique values to an array field."
+  [& vs]
+  (FieldValue/arrayUnion (into-array vs)))
+
+(defn array-remove
+  "Used with `set` and `update`. Removes values from an array field."
+  [& vs]
+  (FieldValue/arrayRemove (into-array vs)))
+
+(defn server-timestamp
+  "Used with `set` and `update`. Timestamp for when the update operation is performed on server."
+  []
+  (FieldValue/serverTimestamp))
+
+(defn increment
+  "Used with `set` and `update`. Increments a numeric field."
+  [v]
+  (FieldValue/increment v))
+
+(defn field-delete
+  "A sentinel value that marks a field for deletion."
+  []
+  (FieldValue/delete))
 
 (defn in
   "Filters where field is one of the values in arr."

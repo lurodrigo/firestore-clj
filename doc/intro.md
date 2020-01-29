@@ -9,44 +9,76 @@ Add to your `project.clj` dependencies:
 
 ```[polvo/firestore-clj "0.1.0"]```
 
-You can read the docs on [clj-doc](https://cljdoc.org/d/polvo/firestore-clj/0.1.0/doc/readme).
+You can read the docs on [clj-doc](https://cljdoc.org/d/polvo/firestore-clj/0.1.1/doc/readme).
 
 ## Getting started
 You can use `client-with-creds` to get a client using credentials from a service account.
 
 ```clojure
-(require '[firestore-clj.core :as db])
+(require '[firestore-clj.core :refer :all])
 
-(def db (db/client-with-creds "/path/to/creds.json"))
+(def db (client-with-creds "/path/to/creds.json"))
 ```
 
 If you are using it inside Google Cloud Platform services with appropriate service account permissions, 
 you can just provide the project-id using `default-client`:
 
 ```clojure
-(def db (db/default-client "project-id"))
+(def db (default-client "project-id"))
 ```
 
 ## Writing data
 
-We currently provide the methods `add`, `set` and `delete`.
+We currently provide the methods `add`, `set`, `update` and `delete`. 
+Additionally, the functions `server-timestamp`, `increment`, `field-delete`, 
+`array-union` and `array-remove` can be used as special values on a `set` or `update`. Some examples:
+
+```clojure
+; creates new document with random id
+(-> (collection db "accounts")
+    (add {"name"     "account-x"
+          "exchange" "bitmex"}))
+
+; creates new document with id "xxxx"
+(-> (collection db "accounts")
+    (set "xxxx" {"name"       "account-x"
+                 "exchange"   "bitmex"
+                 "start_date" (server-timestamp)
+                 "trade_count" 0}))
+
+; updates a single field
+(-> (collection db "accounts")
+    (document "xxxx")
+    (update "trade_count" (increment 1)))
+
+; updates multiple fields
+(-> (collection db "accounts")
+    (document "xxxx")
+    (update {"trade_count" (field-delete)
+             "active"      true}))
+
+; deletes it
+(-> (collection db "accounts")
+    (document "xxxx")
+    (delete))
+```
 
 ## Queries
 
-We provide the query functions below. 
+We provide the query functions below (along with corresponding Java API methods):
 
 | firestore-clj | Java API |
-| --- | --- |
-| `filter=` | `.whereEqualTo()` |
-| `filter<` | `.whereLessThan()` |
-| `filter<=` | `.whereLessThanOrEqualTo()` |
-| `filter>` | `.whereGreaterThan()` |
-| `filter>=` | `.whereGreaterThanOrEqualTo()` |
-| `in` | `.whereIn() ` |
-| `contains` | `.whereArrayContains() ` |
+| --- | ---  |
+| `filter=`      | `.whereEqualTo()` |
+| `filter<`      | `.whereLessThan()` |
+| `filter<=`     | `.whereLessThanOrEqualTo()` |
+| `filter>`      | `.whereGreaterThan()` |
+| `filter>=`     | `.whereGreaterThanOrEqualTo()` |
+| `in`           | `.whereIn() ` |
+| `contains`     | `.whereArrayContains() ` |
 | `contains-any` | `.whereArrayContainsAny() ` |
-| `order-by` | `.orderBy` |
-| `take` | `.limit()` |
+| `order-by`     | `.orderBy()` |
+| `take`         | `.limit()` |
 
 You can use `pull` to fetch the results as a map. Here's an example:
 
@@ -90,10 +122,10 @@ If you have the appropriate indexes, you can `order-by` multiple columns:
 You can materialize a document/collection reference or query as an `atom` using `->atom`:
 
 ```clojure
-(def at @(-> (collection db "positions")
-             (filter= {"exchange" "bitmex" 
-                       "account" 1}) 
-             ->atom)) ; @'ing since ->atom returns a promise
+(def at (-> (collection db "positions")
+            (filter= {"exchange" "bitmex" 
+                      "account" 1}) 
+            ->atom))
 
 @at
 ```
@@ -103,6 +135,13 @@ Once you're done, you can just `detach` it.
 If you need a lower level utility, you can use `add-listener`. It takes a 2-arity function and merely reifies it
 as an `EventListener`. `snapshot->data` may be useful. Read original docs [here](https://firebase.google.com/docs/firestore/query-data/listen#events-local-changes) 
 for more.
+
+## Caveats
+
+* Most operations (basically excluding those that merely build queries) `.get` the underlying `ApiFuture`s. Wrap
+them in `future` if you want to go async.
+* We assume all maps have string keys. We do not convert keywords. Use [`camel-snake-kebab`](https://clj-commons.org/camel-snake-kebab/)
+if you want to.
 
 ## Contributing and improvements
 
