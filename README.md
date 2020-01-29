@@ -9,7 +9,7 @@ Add to your `project.clj` dependencies:
 
 ```[polvo/firestore-clj "0.1.0"]```
 
-You can read the docs on [clj-doc]().
+You can read the docs on [clj-doc](https://cljdoc.org/d/polvo/firestore-clj/0.1.0/doc/readme).
 
 ## Getting started
 You can use `client-with-creds` to get a client using credentials from a service account.
