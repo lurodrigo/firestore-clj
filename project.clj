@@ -1,4 +1,4 @@
-(defproject polvo/firestore-clj "0.1.1"
+(defproject polvo/firestore-clj "0.1.2"
   :description "A Firestore client for Clojure. Provides tools for both pull and realtime data."
   :url "https://github.com/polvotech/firestore-clj"
   :license {:name "MIT LICENSE"

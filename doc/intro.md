@@ -1,4 +1,4 @@
-# firestore-clj
+# Overview
 
 A Firestore API for Clojure. Provides tools for doing both single pulls and streaming real-time data.
 This library is a thin wrapper over `com.google.firebase/firebase-admin`.
@@ -7,9 +7,9 @@ This library is a thin wrapper over `com.google.firebase/firebase-admin`.
 
 Add to your `project.clj` dependencies:
 
-```[polvo/firestore-clj "0.1.1"]```
+```[polvo/firestore-clj "0.1.2"]```
 
-You can read the docs on [clj-doc](https://cljdoc.org/d/polvo/firestore-clj/0.1.1/doc/readme).
+You can read the docs on [clj-doc](https://cljdoc.org/d/polvo/firestore-clj/0.1.2/doc/readme).
 
 ## Getting started
 You can use `client-with-creds` to get a client using credentials from a service account.
@@ -30,7 +30,7 @@ you can just provide the project-id using `default-client`:
 ## Writing data
 
 We currently provide the methods `add!`, `set!`, `assoc!`, `dissoc!`, `merge!` and `delete!`. 
-Additionally, the functions `server-timestamp`, `inc`, `field-delete`, 
+Additionally, the functions `server-timestamp`, `inc`, `delete`, 
 `array-union` and `array-remove` can be used as special values on a `set!`, `merge!` and `assoc!`. Some examples:
 
 ```clojure

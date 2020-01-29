@@ -7,9 +7,10 @@ This library is a thin wrapper over `com.google.firebase/firebase-admin`.
 
 Add to your `project.clj` dependencies:
 
-```[polvo/firestore-clj "0.1.1"]```
+```[polvo/firestore-clj "0.1.2"]```
 
-You can read the full docs (includes an overview!) at [clj-doc](https://cljdoc.org/d/polvo/firestore-clj/0.1.1/doc/readme),
+You can read the full docs (includes an overview!) at 
+[clj-doc](https://cljdoc.org/d/polvo/firestore-clj/0.1.2/doc/readme),
 but here's a quickie:
 
 ```clojure

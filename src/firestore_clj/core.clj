@@ -5,7 +5,8 @@
            (com.google.cloud.firestore Firestore QuerySnapshot CollectionReference EventListener DocumentReference DocumentSnapshot Query$Direction FieldValue)
            (com.google.firebase FirebaseApp FirebaseOptions FirebaseOptions)
            (com.google.firebase.cloud FirestoreClient)
-           (java.util HashMap)))
+           (java.util HashMap)
+           (com.google.cloud Timestamp)))
 
 (defn client-with-creds
   "Creates a client from a credentials JSON file."
@@ -27,14 +28,24 @@
     (FirebaseApp/initializeApp options)
     (FirestoreClient/getFirestore)))
 
+(defn- document-snapshot->data
+  "Gets a DocumentSnapshot's underlying data"
+  [s]
+  (->> (.getData s)
+       (map (fn [[k v]]
+              (if (instance? Timestamp v)
+                [k (.toDate v)]
+                [k v])))
+       (into {})))
+
 (defn snapshot->data
-  "Gets a DocumentReference/CollectionReference/Query's underlying data."
+  "Gets a DocumentSnapshot/CollectionSnapshot/QuerySnapshot's underlying data."
   [s]
   (if (instance? DocumentSnapshot s)
-    (into {} (.getData s))
+    (document-snapshot->data s)
     (->> s
          (map (fn [d]
-                [(.getId d) (into {} (.getData d))]))
+                [(.getId d) (document-snapshot->data d)]))
          (into {}))))
 
 (defn pull
@@ -115,7 +126,7 @@
   [^DocumentReference d m]
   (.get (.update d (HashMap. m))))
 
-(declare field-delete)
+(declare delete)
 
 (defn assoc!
   "Associates new keys and values."
@@ -126,7 +137,7 @@
   "Deletes keys."
   [^DocumentReference d & ks]
   (->> ks
-       (map (fn [k] [k (field-delete)]))
+       (map (fn [k] [k (delete)]))
        (into {})
        (merge! d)))
 
@@ -135,8 +146,8 @@
   ([q m]
    (reduce (fn [q' [field value]]
              (filter= q' field value))
-     q
-     m))
+           q
+           m))
   ([q field value]
    (.whereEqualTo q field value)))
 
@@ -185,7 +196,7 @@
   [v]
   (FieldValue/increment v))
 
-(defn field-delete
+(defn delete
   "Used with `set!` and `merge!`. A sentinel value that marks a field for deletion."
   []
   (FieldValue/delete))
