@@ -12,6 +12,9 @@ Add to your `project.clj` dependencies:
 You can read the docs on [clj-doc](https://cljdoc.org/d/polvo/firestore-clj/0.1.2/doc/readme).
 
 ## Getting started
+We're referring all names from `firestore-clj.core` for brevity right now, but we recommend 
+against it in most cases, since some names conflict with `clojure.core`.
+
 You can use `client-with-creds` to get a client using credentials from a service account.
 
 ```clojure
