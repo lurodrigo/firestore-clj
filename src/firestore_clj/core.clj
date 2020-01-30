@@ -1,13 +1,15 @@
 (ns firestore-clj.core
   (:require [clojure.java.io :as io]
+            [clojure.core.match :refer [match]]
             [clojure.spec.alpha :as s])
   (:import (com.google.auth.oauth2 GoogleCredentials)
-           (com.google.cloud.firestore Firestore QuerySnapshot CollectionReference EventListener DocumentReference DocumentSnapshot Query$Direction FieldValue Query ListenerRegistration)
+           (com.google.cloud.firestore Firestore QuerySnapshot CollectionReference EventListener DocumentReference DocumentSnapshot Query$Direction FieldValue Query ListenerRegistration WriteBatch Transaction UpdateBuilder Transaction$Function TransactionOptions QueryDocumentSnapshot)
            (com.google.firebase FirebaseApp FirebaseOptions FirebaseOptions)
            (com.google.firebase.cloud FirestoreClient)
            (java.util HashMap List)
            (com.google.cloud Timestamp)
-           (com.google.api.core ApiFuture)))
+           (com.google.api.core ApiFuture)
+           (java.util.concurrent Executor)))
 
 (defn- build-hash-map
   "Helper for build java.util.HashMap without reflection."
@@ -60,11 +62,26 @@
          (into {}))))
 
 (defn pull
-  "Pulls data from a DocumentReference or Query."
-  [q]
-  (if (instance? Query q)
-    (snapshot->data (.get ^ApiFuture (.get ^Query q)))
-    (snapshot->data (.get ^ApiFuture (.get ^DocumentReference q)))))
+  "Pulls data from a DocumentReference or Query. 2-arity fn operates inside a transaction context."
+  ([q]
+   (if (instance? Query q)
+     (snapshot->data (.get ^ApiFuture (.get ^Query q)))
+     (snapshot->data (.get ^ApiFuture (.get ^DocumentReference q)))))
+  ([q ^Transaction t]
+   (if (instance? Query q)
+     (snapshot->data (.get ^ApiFuture (.get t ^Query q)))
+     (snapshot->data (.get ^ApiFuture (.get t ^DocumentReference q))))))
+
+(defn pull-all
+  "Pulls data from a vector of `DocumentReference`s. 2-arity fn operates inside a transaction context."
+  ([ds]
+   (mapv #(snapshot->data (.get ^ApiFuture (.get ^DocumentReference %))) ds))
+  ([ds ^Transaction t]
+   (->> ds
+        (into-array DocumentReference)
+        (.getAll t)
+        (.get)
+        (mapv document-snapshot->data))))
 
 (defn add-listener
   "Adds a snapshot listener to a DocumentReference or Query.
@@ -103,18 +120,26 @@
   [a]
   (.remove ^ListenerRegistration (:registration (meta a))))
 
-(defn collection
+(defn coll
   "Returns a CollectionReference for the collection of given name."
   ^CollectionReference [^Firestore db ^String coll-name]
   (.collection db coll-name))
 
-(defn document
-  "Gets a document from a collection reference."
-  ^DocumentReference [^CollectionReference c ^String id]
-  (.document c id))
+(defn doc
+  "Gets a DocumentReference given CollectionReference and an id. If id is not given, it will point
+  to a new document with an auto-generated-id"
+  (^DocumentReference [^CollectionReference c]
+   (.document c))
+  (^DocumentReference [^CollectionReference c ^String id]
+   (.document c id)))
+
+(defn docs
+  "Gets a vector of `DocumentReference`s, given a vector of ids"
+  ^DocumentReference [^CollectionReference c ds]
+  (mapv #(.document c %) ds))
 
 (defn id
-  "Returns the id of a document, given a reference."
+  "Returns the id of a DocumentReference"
   [^DocumentReference d]
   (.getId d))
 
@@ -123,35 +148,124 @@
   [^CollectionReference c m]
   (-> c (.add (build-hash-map m)) (.get)))
 
+(defn create!
+  "Creates a new document at the DocumentReference's location. Fails if the document exists."
+  [^DocumentReference d m]
+  (-> d (.create (build-hash-map m)) (.get)))
+
 (defn set!
   "Creates or overwrites a document."
-  [^CollectionReference c doc-name m]
-  (-> c (.document doc-name) (.set (build-hash-map m)) (.get)))
+  [^DocumentReference d m]
+  (-> d (.set (build-hash-map m)) (.get)))
+
+(defn set
+  "Creates or overwrites a document in a batched write/transaction context."
+  [^UpdateBuilder context ^DocumentReference d m]
+  (.set context d (build-hash-map m)))
 
 (defn delete!
   "Deletes a document."
   [^DocumentReference d]
   (-> (.delete d) (.get)))
 
+(defn delete
+  "Deletes a document in a batched write/transaction context."
+  [^UpdateBuilder context ^DocumentReference d]
+  (-> (.delete context d)))
+
 (defn merge!
   "Updates fields of a document."
   [^DocumentReference d m]
-  (.get (.update d (build-hash-map m))))
+  (-> d (.update (build-hash-map m)) (.get)))
 
-(declare delete)
+(defn merge
+  "Updates field of a document in a batched write/transaction context."
+  [^UpdateBuilder context ^DocumentReference d m]
+  (.update context d (build-hash-map m)))
+
+(declare mark-for-deletion)
+
+(defn batch
+  "Get a new write batch"
+  [^Firestore db]
+  (.batch db))
+
+(defn commit!
+  "Commits a write batch."
+  [^WriteBatch b]
+  (-> (.commit b) (.get)))
 
 (defn assoc!
   "Associates new keys and values."
   [^DocumentReference d & kvs]
   (merge! d (apply hash-map kvs)))
 
+(defn assoc
+  "Associates new keys and values in a batched write/transaction context."
+  [context ^DocumentReference d & kvs]
+  (merge context d (apply hash-map kvs)))
+
 (defn dissoc!
   "Deletes keys."
   [^DocumentReference d & ks]
   (->> ks
-       (map (fn [k] [k (delete)]))
+       (map (fn [k] [k (mark-for-deletion)]))
        (into {})
        (merge! d)))
+
+(defn dissoc
+  "Deletes keys in a batched write/transaction context."
+  [context ^DocumentReference d & ks]
+  (->> ks
+       (map (fn [k] [k (mark-for-deletion)]))
+       (into {})
+       (merge context d)))
+
+(defn- tx-option
+  "Creates a Transaction$Function."
+  [f]
+  (reify
+    Transaction$Function
+    (updateCallback [_ t]
+      (f t))))
+
+(defn transact!
+  "Performs a transaction. Optionally, you can specify an executor and the maximum number of attemps."
+  ([^Firestore db f]
+   (.get (.runTransaction db (tx-option f))))
+  ([^Firestore db f {:keys [attempts executor] :as options}]
+   (.get (.runTransaction db
+                          (tx-option f)
+                          (match [attempts executor]
+                                 [nil nil] (TransactionOptions/create)
+                                 [nil _] (TransactionOptions/create ^int attempts)
+                                 [_ nil] (TransactionOptions/create ^Executor executor)
+                                 [_ _] (TransactionOptions/create executor attempts))))))
+
+(defn update!
+  "Updates a document by applying a function to it."
+  ([^Firestore db ^DocumentReference d f & args]
+   (transact! db (fn [tx]
+                   (let [data (pull d tx)]
+                     (set tx d (apply f data args)))))))
+
+(defn update-field!
+  "Updates a single field of a document by applying a function to it."
+  [^Firestore db ^DocumentReference d field f & args]
+  (update! db d (fn [data]
+                    (apply update data field f args))))
+
+(defn map!
+  "Updates all docs in a vector or query by applying a function to them"
+  [^Firestore db q f & args]
+  (transact! db (fn [tx]
+                  (let [ds (if (instance? Query q)
+                             (let [doclist (.getDocuments ^QuerySnapshot (->> (.get ^Transaction tx ^Query q)
+                                                                              (.get)))]
+                               (mapv #(.getReference ^QueryDocumentSnapshot %) doclist))
+                             q)
+                        all-data (pull-all ds tx)]
+                    (mapv #(set tx %1 (apply f %2 args)) ds all-data)))))
 
 (defn filter=
   "Filters where field = value. A map may be used for checking multiple equalities."
@@ -210,7 +324,7 @@
     (FieldValue/increment ^long v)
     (FieldValue/increment ^double v)))
 
-(defn delete
+(defn mark-for-deletion
   "Used with `set!` and `merge!`. A sentinel value that marks a field for deletion."
   []
   (FieldValue/delete))

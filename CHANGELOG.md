@@ -1,6 +1,15 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
+## 0.2.0 - 2020-01-30
+### Added 
+* Support for transactions and batched writes
+* `doc` with 1-arity
+
+### Modified
+* `set!` now takes a DocumentReference
+* Renamed `collection` -> `coll`, `document` -> `doc`, `field-delete` -> `mark-for-deletion`.
+
 ## 0.1.3 - 2020-01-29
 ### Added
 * All functions now have proper type hints to avoid reflection.
