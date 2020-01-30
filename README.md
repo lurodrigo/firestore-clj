@@ -1,17 +1,12 @@
-# firestore-clj
+# firestore-clj 
+[![Clojars Project](https://img.shields.io/clojars/v/polvo/firestore-clj.svg)](https://clojars.org/polvo/firestore-clj)
+[![cljdoc badge](https://cljdoc.org/badge/polvo/firestore-clj)](https://cljdoc.org/d/polvo/firestore-clj/CURRENT)
 
-A Firestore API for Clojure. Provides tools for doing both single pulls and streaming real-time data.
-This library is a thin wrapper over `com.google.firebase/firebase-admin`. All functions are properly
+A Firestore API for Clojure. Provides tools for doing single pulls and writes, streaming real-time data,
+batched writes and transactions.
+This lib is a wrapper over `com.google.firebase/firebase-admin`. All functions are properly
 type hinted, so no reflection is used. We also try to provide somewhat idiomatic names for the 
-operations and queries.
-
-## Installation and Docs
-
-Add to your `project.clj` dependencies:
-
-```[polvo/firestore-clj "0.2.0"]```
-
-You can read the docs on [clj-doc](https://cljdoc.org/d/polvo/firestore-clj/0.2.0/doc/readme).
+operations and queries, and idiomatic transactions as well.
 
 ## Getting started
 
@@ -172,6 +167,8 @@ balances between two accounts:
                                         (update "tx_count" inc))))))
 ```
 
+You can use both `pull` and `pull-all` in a transaction, passing the `Transaction` object as the second parameter.
+
 ## Conveniences
 
 We've also written a few convenience functions for common types of transactions. 
@@ -212,8 +209,6 @@ Over results of a query:
                (f/filter< "balance" 1000))
         #(assoc % "balance" 1000))
 ```
-
-Notice that `pull` is overloaded, taking a `transaction` parameter as context.
 
 ## Design decisions 
 
