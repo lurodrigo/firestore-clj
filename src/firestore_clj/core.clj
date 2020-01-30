@@ -260,8 +260,7 @@
   [^Firestore db q f & args]
   (transact! db (fn [tx]
                   (let [ds (if (instance? Query q)
-                             (let [doclist (.getDocuments ^QuerySnapshot (->> (.get ^Transaction tx ^Query q)
-                                                                              (.get)))]
+                             (let [doclist (.getDocuments ^QuerySnapshot (.get ^ApiFuture (.get ^Transaction tx ^Query q)))]
                                (mapv #(.getReference ^QueryDocumentSnapshot %) doclist))
                              q)
                         all-data (pull-all ds tx)]
