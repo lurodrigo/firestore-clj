@@ -2,6 +2,7 @@
   (:require [clojure.java.io :as io]
             [clojure.core.match :refer [match]]
             [clojure.spec.alpha :as s])
+  (:refer-clojure :exclude [set set! merge merge! assoc assoc! dissoc dissoc! take inc update!])
   (:import (com.google.auth.oauth2 GoogleCredentials)
            (com.google.cloud.firestore Firestore QuerySnapshot CollectionReference EventListener DocumentReference DocumentSnapshot Query$Direction FieldValue Query ListenerRegistration WriteBatch Transaction UpdateBuilder Transaction$Function TransactionOptions QueryDocumentSnapshot)
            (com.google.firebase FirebaseApp FirebaseOptions FirebaseOptions)
