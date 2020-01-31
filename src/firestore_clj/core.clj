@@ -41,8 +41,15 @@
     (FirebaseApp/initializeApp options)
     (FirestoreClient/getFirestore)))
 
-(defn- document-snapshot->data
-  "Gets a DocumentSnapshot's underlying data"
+(defn id
+  "Returns the id of a DocumentReference or DocumentSnapshot."
+  [d]
+  (if (instance? DocumentReference d)
+    (.getId ^DocumentReference d)
+    (.getId ^DocumentSnapshot d)))
+
+(defn doc->plain
+  "Represents a DocumentSnapshot as plain map."
   [^DocumentSnapshot s]
   (->> (.getData s)
        (map (fn [[k v]]
@@ -51,37 +58,80 @@
                 [k v])))
        (into {})))
 
+(defn doc->plain-with-id
+  "Represents a DocumentSnapshot as a [id plain-doc] pair"
+  [^DocumentSnapshot s]
+  [(id s) (doc->plain s)])
+
+(defn query->plainv
+  "Represents a QuerySnapshot as a plain vector of document data."
+  [^QuerySnapshot s]
+  (mapv doc->plain s))
+
+(defn query->plainv-with-ids
+  "Represents a QuerySnapshot as a plain vector of [id doc] pairs."
+  [^QuerySnapshot s]
+  (mapv doc->plain-with-id s))
+
+(defn query->plain-map
+  "Represents a QuerySnapshot as a plain map whose keys are the document ids."
+  [^QuerySnapshot s]
+  (into {} (query->plainv-with-ids s)))
+
 (defn snapshot->data
   "Gets a DocumentSnapshot/CollectionSnapshot/QuerySnapshot's underlying data."
   [s]
   (if (instance? DocumentSnapshot s)
-    (document-snapshot->data s)
-    (->> s
-         (map (fn [d]
-                [(.getId ^DocumentSnapshot d) (document-snapshot->data d)]))
-         (into {}))))
+    (doc->plain s)
+    (query->plain-map s)))
 
-(defn pull
-  "Pulls data from a DocumentReference or Query. 2-arity fn operates inside a transaction context."
-  ([q]
-   (if (instance? Query q)
-     (snapshot->data (.get ^ApiFuture (.get ^Query q)))
-     (snapshot->data (.get ^ApiFuture (.get ^DocumentReference q)))))
-  ([q ^Transaction t]
-   (if (instance? Query q)
-     (snapshot->data (.get ^ApiFuture (.get t ^Query q)))
-     (snapshot->data (.get ^ApiFuture (.get t ^DocumentReference q))))))
+(defn doc-snapshot
+  "Gets a QueryDocumentSnapshot given a DocumentReference and possibly a Transaction."
+  ([^DocumentReference d]
+   (.get ^ApiFuture (.get d)))
+  ([^DocumentReference d ^Transaction t]
+   (.get ^ApiFuture (.get t d))))
 
-(defn pull-all
-  "Pulls data from a vector of `DocumentReference`s. 2-arity fn operates inside a transaction context."
+(defn query-snapshot
+  "Gets a QuerySnapshot given a Query and possibly a Transaction."
+  ([^Query q]
+   (.get ^ApiFuture (.get q)))
+  ([^Query q ^Transaction t]
+   (.get ^ApiFuture (.get t q))))
+
+(def ^{:doc "Pulls clojure data from a DocumentReference."}
+  pull-doc (comp doc->plain doc-snapshot))
+
+(def ^{:doc "Pulls results from a Query as clojure data."}
+  pull-query (comp query->plain-map query-snapshot))
+
+(def ^{:doc "Pulls query results as a vector of document data."}
+  pullv (comp query->plainv query-snapshot))
+
+(def ^{:doc "Pulls query results as a vector of pairs. Each pair has an id and document data"}
+  pullv-with-ids (comp query->plainv-with-ids query-snapshot))
+
+(defn pull-docs
+  "Pulls clojure data from a sequence of `DocumentReference`s, possibly inside a transaction context."
   ([ds]
-   (mapv #(snapshot->data (.get ^ApiFuture (.get ^DocumentReference %))) ds))
+   (mapv pull-doc ds))
   ([ds ^Transaction t]
    (->> ds
         (into-array DocumentReference)
         (.getAll t)
         (.get)
-        (mapv document-snapshot->data))))
+        (mapv doc->plain))))
+
+(defn pull
+  "Pulls data from a DocumentReference or Query, possibly inside a transaction context."
+  ([q]
+   (if (instance? Query q)
+     (pull-query q)
+     (pull-doc q)))
+  ([q ^Transaction t]
+   (if (instance? Query q)
+     (pull-query t q)
+     (pull-doc t q))))
 
 (defn add-listener
   "Adds a snapshot listener to a DocumentReference or Query.
@@ -100,13 +150,13 @@
 (defn ->atom
   "Returns an atom holding the latest value of a DocumentReference or Query."
   ([q]
-   (->atom q identity))
-  ([q error-handler]
+   (->atom q {}))
+  ([q {:keys [error-handler plain-fn] :or {error-handler identity plain-fn snapshot->data}}]
    (let [a            (atom nil)
          registration (add-listener q (fn [s e]
                                         (if (some? e)
                                           (error-handler e)
-                                          (reset! a (snapshot->data s)))))
+                                          (reset! a (plain-fn s)))))
          d            (promise)]
      (alter-meta! a assoc :registration registration)
      (add-watch a :waiting-first-val (fn [_ _ _ _]
@@ -137,11 +187,6 @@
   "Gets a vector of `DocumentReference`s, given a vector of ids"
   ^DocumentReference [^CollectionReference c ds]
   (mapv #(.document c %) ds))
-
-(defn id
-  "Returns the id of a DocumentReference"
-  [^DocumentReference d]
-  (.getId d))
 
 (defn add!
   "Adds a document to a collection. Its id will be automatically generated."
@@ -246,7 +291,7 @@
   "Updates a document by applying a function to it."
   ([^Firestore db ^DocumentReference d f & args]
    (transact! db (fn [tx]
-                   (let [data (pull d tx)]
+                   (let [data (pull-doc d tx)]
                      (set tx d (apply f data args)))))))
 
 (defn update-field!
@@ -263,7 +308,7 @@
                              (let [doclist (.getDocuments ^QuerySnapshot (.get ^ApiFuture (.get ^Transaction tx ^Query q)))]
                                (mapv #(.getReference ^QueryDocumentSnapshot %) doclist))
                              q)
-                        all-data (pull-all ds tx)]
+                        all-data (pull-docs ds tx)]
                     (mapv #(set tx %1 (apply f %2 args)) ds all-data)))))
 
 (defn filter=

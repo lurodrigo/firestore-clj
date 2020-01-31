@@ -1,6 +1,14 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
+## 0.3.0 - 2020-01-31
+### Modified
+* Lots of changes on internals, finer control of results' representation as data.
+
+## 0.2.1 - 2020-01-30
+### Modified
+* Moved `org.clojure/clojure` to dev dependencies.
+
 ## 0.2.0 - 2020-01-30
 ### Added 
 * Support for transactions and batched writes

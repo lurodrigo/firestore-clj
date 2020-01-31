@@ -81,8 +81,7 @@ You can use `pull` to fetch the results as a map. Here's an example:
 
 ```clojure
 (-> (f/coll db "positions")
-    (f/filter= "exchange" "bitmex") 
-    (f/sort-by "instrument")
+    (f/filter= "exchange" "bitmex"
     (f/take 2)
     f/pull)
 ``` 
@@ -96,15 +95,15 @@ You can perform multiple equality filters using a map.
     f/pull)
 ```
 
-You can sort results. For descending order, add a `:desc`
+When result ordering matters, you can use `pullv` to get the results as vectors, or `pullv-with-ids` if you
+also need the ids.
 
 ```clojure
 (-> (f/coll db "positions")
     (f/filter= "account" 1)
     (f/sort-by "size") ; descending: (f/sort-by "size" :desc) 
-    f/pull)
+    f/pullv) ; 
 ```
-
 If you have the appropriate indexes, you can `sort-by` multiple fields:
 
 ```clojure
@@ -131,9 +130,10 @@ You can materialize a document/collection reference or query as an `atom` using 
 (f/detach at) ; when you don't need updates anymore.
 ```
 
-If you need a lower level utility, you can use `add-listener`. It takes a 2-arity function and merely reifies it
-as an `EventListener`. `snapshot->data` may be useful. Read original docs [here](https://firebase.google.com/docs/firestore/query-data/listen#events-local-changes) 
-for more.
+`->atom` can also take a map with keys `error-handler` and `plain-fn` (`query->plain-map`, `query->plainv`, 
+`query->plainv-with-ids` or custom). If you need a lower level utility, you can use `add-listener`. It takes a 2-arity 
+function and merely reifies it as an `EventListener`. Read upstream docs 
+[here](https://firebase.google.com/docs/firestore/query-data/listen#events-local-changes) for more.
 
 ## Batched writes and transactions
 
@@ -145,7 +145,7 @@ so you can easily chain operations. They are executed atomically by calling
 
 ```clojure
 (let [[acc1 acc2 acc3] (-> (f/coll db "accounts")
-                           (f/pull-all))]
+                           (f/docs ["acc1" "acc2" "acc3"]))]
   (-> (f/batch db)
       (f/assoc acc1 "tx_count" 0)
       (f/merge acc2 {"tx_count" 0})
@@ -160,14 +160,14 @@ balances between two accounts:
 (f/transact! db (fn [tx]
                   (let [[mine yours :as docs] (-> (f/coll db "accounts")
                                                   (f/docs ["my_account" "your_account"]))
-                        [my-acc your-acc] (f/pull-all docs tx)]
+                        [my-acc your-acc] (f/pull-docs docs tx)]
                     (f/set tx mine (-> (update my-acc "balance" + 100)
                                        (update "tx_count" inc)))
                     (f/set tx yours (-> (update your-acc "balance" - 100)
                                         (update "tx_count" inc))))))
 ```
 
-You can use both `pull` and `pull-all` in a transaction, passing the `Transaction` object as the second parameter.
+You can use both `pull` and `pull-docs` in a transaction, passing the `Transaction` object as the second parameter.
 
 ## Conveniences
 
