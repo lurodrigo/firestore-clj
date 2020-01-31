@@ -144,13 +144,13 @@ so you can easily chain operations. They are executed atomically by calling
 `commit!` or `transact!`. 
 
 ```clojure
-(def accounts (f/coll db "accounts"))
-
-(-> (f/batch db)
-    (f/assoc (f/doc accounts "doc1") "tx_count" 0)
-    (f/merge (f/doc accounts "doc2") {"tx_count" 0})
-    (f/delete (f/doc accounts "doc3"))
-    (f/commit!))
+(let [[acc1 acc2 acc3] (-> (f/coll db "accounts")
+                           (f/pull-all))]
+  (-> (f/batch db)
+      (f/assoc acc1 "tx_count" 0)
+      (f/merge acc2 {"tx_count" 0})
+      (f/delete acc3)
+      (f/commit!)))
 ```
 
 If you need reads, you'll need a transaction. Here's how you would transfer
