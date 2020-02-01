@@ -1,4 +1,4 @@
-(defproject polvo/firestore-clj "0.3.1"
+(defproject polvo/firestore-clj "0.3.2"
   :description "A Firestore API for Clojure. Provides tools for doing single pulls and writes, streaming real-time data, batched writes and transactions."
   :url "https://github.com/polvotech/firestore-clj"
   :license {:name "MIT LICENSE"

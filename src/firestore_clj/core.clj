@@ -1,5 +1,6 @@
 (ns firestore-clj.core
   (:require [clojure.java.io :as io]
+            [clojure.core :as core]
             [clojure.core.match :refer [match]]
             [clojure.spec.alpha :as s])
   (:refer-clojure :exclude [set set! merge merge! assoc assoc! dissoc dissoc! take inc update!])
@@ -7,9 +8,9 @@
            (com.google.cloud.firestore Firestore QuerySnapshot CollectionReference EventListener DocumentReference DocumentSnapshot Query$Direction FieldValue Query ListenerRegistration WriteBatch Transaction UpdateBuilder Transaction$Function TransactionOptions QueryDocumentSnapshot)
            (com.google.firebase FirebaseApp FirebaseOptions FirebaseOptions)
            (com.google.firebase.cloud FirestoreClient)
-           (java.util HashMap List)
            (com.google.cloud Timestamp)
            (com.google.api.core ApiFuture)
+           (java.util HashMap List)
            (java.util.concurrent Executor)))
 
 (defn- build-hash-map
@@ -159,7 +160,7 @@
                                           (error-handler e)
                                           (reset! a (plain-fn s)))))
          d            (promise)]
-     (alter-meta! a assoc :registration registration)
+     (alter-meta! a core/assoc :registration registration)
      (add-watch a :waiting-first-val (fn [_ _ _ _]
                                        (do
                                          (remove-watch a :waiting-first-val)
