@@ -1,15 +1,16 @@
 (ns firestore-clj.core
+  (:refer-clojure :exclude [set set! merge merge! assoc assoc! dissoc dissoc! take inc update!])
   (:require [clojure.java.io :as io]
             [clojure.core :as core]
             [clojure.core.match :refer [match]]
             [clojure.spec.alpha :as s])
-  (:refer-clojure :exclude [set set! merge merge! assoc assoc! dissoc dissoc! take inc update!])
-  (:import (com.google.auth.oauth2 GoogleCredentials)
-           (com.google.cloud.firestore Firestore QuerySnapshot CollectionReference EventListener DocumentReference DocumentSnapshot Query$Direction FieldValue Query ListenerRegistration WriteBatch Transaction UpdateBuilder Transaction$Function TransactionOptions QueryDocumentSnapshot)
+  (:import (clojure.lang IAtom)
+           (com.google.api.core ApiFuture)
+           (com.google.auth.oauth2 GoogleCredentials)
+           (com.google.cloud Timestamp)
+           (com.google.cloud.firestore Firestore QuerySnapshot CollectionReference EventListener DocumentReference DocumentSnapshot Query$Direction FieldValue Query ListenerRegistration WriteBatch Transaction UpdateBuilder Transaction$Function TransactionOptions QueryDocumentSnapshot DocumentChange$Type DocumentChange)
            (com.google.firebase FirebaseApp FirebaseOptions FirebaseOptions)
            (com.google.firebase.cloud FirestoreClient)
-           (com.google.cloud Timestamp)
-           (com.google.api.core ApiFuture)
            (java.util HashMap List)
            (java.util.concurrent Executor)))
 
@@ -44,11 +45,12 @@
     (FirestoreClient/getFirestore)))
 
 (defn id
-  "Returns the id of a DocumentReference or DocumentSnapshot."
+  "Returns the id of a CollectionReference, DocumentReference or DocumentSnapshot."
   [d]
-  (if (instance? DocumentReference d)
-    (.getId ^DocumentReference d)
-    (.getId ^DocumentSnapshot d)))
+  (condp instance? d
+    DocumentReference (.getId ^DocumentReference d)
+    DocumentSnapshot (.getId ^DocumentSnapshot d)
+    CollectionReference (.getId ^CollectionReference d)))
 
 (defn doc->plain
   "Represents a DocumentSnapshot as plain map."
@@ -83,9 +85,9 @@
 (defn snapshot->data
   "Gets a DocumentSnapshot/CollectionSnapshot/QuerySnapshot's underlying data."
   [s]
-  (if (instance? DocumentSnapshot s)
-    (doc->plain s)
-    (query->plain-map s)))
+  (condp instance? s
+    DocumentSnapshot (doc->plain s)
+    QuerySnapshot (query->plain-map s)))
 
 (defn doc-snapshot
   "Gets a QueryDocumentSnapshot given a DocumentReference and possibly a Transaction."
@@ -127,13 +129,13 @@
 (defn pull
   "Pulls data from a DocumentReference or Query, possibly inside a transaction context."
   ([q]
-   (if (instance? Query q)
-     (pull-query q)
-     (pull-doc q)))
+   (condp instance? q
+     Query (pull-query q)
+     DocumentReference (pull-doc q)))
   ([q ^Transaction t]
-   (if (instance? Query q)
-     (pull-query t q)
-     (pull-doc t q))))
+   (condp instance? q
+     Query (pull-query t q)
+     DocumentReference (pull-doc t q))))
 
 (defn add-listener
   "Adds a snapshot listener to a DocumentReference or Query.
@@ -145,9 +147,9 @@
                    EventListener
                    (onEvent [_ s e]
                      (f s e)))]
-    (if (instance? Query q)
-      (.addSnapshotListener ^Query q listener)
-      (.addSnapshotListener ^DocumentReference q listener))))
+    (condp instance? q
+      Query (.addSnapshotListener ^Query q listener)
+      DocumentReference (.addSnapshotListener ^DocumentReference q listener))))
 
 (defn ->atom
   "Returns an atom holding the latest value of a DocumentReference or Query."
@@ -168,27 +170,51 @@
      @d)))
 
 (defn detach
-  "Detaches an atom built with ->atom."
+  "Detaches an atom built with `->atom` or a listener returned from `add-listener`."
   [a]
-  (.remove ^ListenerRegistration (:registration (meta a))))
+  (condp instance? a
+    IAtom (.remove ^ListenerRegistration (:registration (meta a)))
+    ListenerRegistration (.remove ^ListenerRegistration a)))
+
+(def ^:private change-enum->change-kw {DocumentChange$Type/ADDED    :added
+                                       DocumentChange$Type/REMOVED  :removed
+                                       DocumentChange$Type/MODIFIED :modified})
+
+(defn changes
+  "Gets a list of changes."
+  [^QuerySnapshot s]
+  (mapv (fn [^DocumentChange dc]
+          {:type      (change-enum->change-kw (.getType dc))
+           :reference (some-> (.getDocument dc)
+                              (.getReference))
+           :new-index (.getNewIndex dc)
+           :old-index (.getOldIndex dc)})
+        (.getDocumentChanges s)))
 
 (defn coll
   "Returns a CollectionReference for the collection of given name."
   ^CollectionReference [^Firestore db ^String coll-name]
   (.collection db coll-name))
 
+(defn list-colls
+  "Lists all collections"
+  [^Firestore db]
+  (into [] (.listCollections db)))
+
 (defn doc
-  "Gets a DocumentReference given CollectionReference and an id. If id is not given, it will point
+  "Gets a DocumentReference given CollectionReference and an id or Firestore and path. If id is not given, it will point
   to a new document with an auto-generated-id"
   (^DocumentReference [^CollectionReference c]
    (.document c))
-  (^DocumentReference [^CollectionReference c ^String id]
-   (.document c id)))
+  (^DocumentReference [c ^String id]
+   (condp instance? c
+     CollectionReference (.document ^CollectionReference c id)
+     Firestore (.document ^Firestore c id))))
 
 (defn docs
   "Gets a vector of `DocumentReference`s, given a vector of ids"
-  ^DocumentReference [^CollectionReference c ds]
-  (mapv #(.document c %) ds))
+  [c ds]
+  (mapv (partial doc c) ds))
 
 (defn add!
   "Adds a document to a collection. Its id will be automatically generated."
@@ -300,16 +326,16 @@
   "Updates a single field of a document by applying a function to it."
   [^Firestore db ^DocumentReference d field f & args]
   (update! db d (fn [data]
-                    (apply update data field f args))))
+                  (apply update data field f args))))
 
 (defn map!
   "Updates all docs in a vector or query by applying a function to them"
   [^Firestore db q f & args]
   (transact! db (fn [tx]
-                  (let [ds (if (instance? Query q)
-                             (let [doclist (.getDocuments ^QuerySnapshot (.get ^ApiFuture (.get ^Transaction tx ^Query q)))]
-                               (mapv #(.getReference ^QueryDocumentSnapshot %) doclist))
-                             q)
+                  (let [ds       (if (instance? Query q)
+                                   (let [doclist (.getDocuments ^QuerySnapshot (.get ^ApiFuture (.get ^Transaction tx ^Query q)))]
+                                     (mapv #(.getReference ^QueryDocumentSnapshot %) doclist))
+                                   q)
                         all-data (pull-docs ds tx)]
                     (mapv #(set tx %1 (apply f %2 args)) ds all-data)))))
 

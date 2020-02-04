@@ -1,6 +1,19 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
+## 0.3.3 - 2020-02-04
+### Added
+* `list-colls`, `changes`
+
+### Modified
+* `doc` and `docs` now accept a `Firestore` parameter (provided full paths to docs)
+* `id` now accepts DocumentSnapshot and CollectionReference parameters.
+* `detach` now accepts ListenerRegistration too
+
+## 0.3.2 - 2020-01-01
+### Modified
+* Fixed unresolved `assoc`
+
 ## 0.3.1 - 2020-01-31
 ### Modified
 * refer-clojure excluded conflicting names on clojure.core to avoid warning messages.

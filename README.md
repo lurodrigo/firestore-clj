@@ -81,7 +81,7 @@ You can use `pull` to fetch the results as a map. Here's an example:
 
 ```clojure
 (-> (f/coll db "positions")
-    (f/filter= "exchange" "bitmex"
+    (f/filter= "exchange" "bitmex")
     (f/take 2)
     f/pull)
 ``` 
@@ -131,8 +131,24 @@ You can materialize a document/collection reference or query as an `atom` using 
 ```
 
 `->atom` can also take a map with keys `error-handler` and `plain-fn` (`query->plain-map`, `query->plainv`, 
-`query->plainv-with-ids` or custom). If you need a lower level utility, you can use `add-listener`. It takes a 2-arity 
-function and merely reifies it as an `EventListener`. Read upstream docs 
+`query->plainv-with-ids` or custom). 
+
+If you need a lower level utility, you can use `add-listener`. It takes a 2-arity 
+function and merely reifies it as an `EventListener`. The function `changes` might be useful:
+it takes a snapshot and generates a vector of changes, with `:type`, `:reference`, `:new-index`
+and `:old-index` keys. An example that just prints the ids of added, removed or modified docs.
+
+```clojure
+(-> (f/coll db "accounts")
+    (f/add-listener (fn [s e]
+                      (doseq [{:keys [type reference]} (f/changes s)]
+                        (case type
+                          :added (println "Added doc:" (f/id reference))
+                          :modified (println "Modified doc:" (f/id reference))
+                          :removed (println "Deleted doc:" (f/id reference)))))))
+```
+
+Read upstream docs 
 [here](https://firebase.google.com/docs/firestore/query-data/listen#events-local-changes) for more.
 
 ## Batched writes and transactions
@@ -225,6 +241,7 @@ We welcome [PRs](https://github.com/polvotech/firestore-clj/compare). Here are s
 * Data pagination and cursors
 * More convenience around the objects returned from operations. Right now we simply return the boring underlying
 Java objects.
+* Version range warnings?
 
 ## License
 
