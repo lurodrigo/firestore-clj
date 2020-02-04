@@ -1,10 +1,13 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
-## 0.3.4 - 2020-02-04
+## 1.0.0 - 2020-02-04
 ### Added 
 * print methods for `DocumentReference`, `DocumentSnapshot`, `CollectionReference` and `QuerySnapshot`.
 * `->stream` for pushing snapshot updates to a manifold stream.
+
+### Modified
+* internals: consistent naming, renamed snapshot representation fns.
 
 ## 0.3.3 - 2020-02-04
 ### Added
