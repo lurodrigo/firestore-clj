@@ -38,8 +38,7 @@ Additionally, the functions `server-timestamp`, `inc`, `mark-for-deletion`,
              "exchange" "bitmex"}))
 
 ; gets reference for document "xxxx", which may or may not exist
-(def doc (-> (f/coll db "accounts")
-             (f/doc "xxxx")))
+(def doc (f/doc db "accounts/xxxx"))
 
 ; creates it (or overwrites it if it already exists)
 (f/set! doc {"name"        "account-x"
@@ -115,7 +114,8 @@ If you have the appropriate indexes, you can `sort-by` multiple fields:
 
 ## Real-time data
 
-You can materialize a document/collection reference or query as an `atom` using `->atom`:
+You can materialize a document/collection reference or query as an `atom` with `->atom`...,
+or stream updates as a [Manifold](https://github.com/ztellman/manifold) stream with `->stream`:
 
 ```clojure
 (def at (-> (f/coll db "positions")
@@ -130,8 +130,24 @@ You can materialize a document/collection reference or query as an `atom` using 
 (f/detach at) ; when you don't need updates anymore.
 ```
 
-`->atom` can also take a map with keys `error-handler` and `plain-fn` (`query->plain-map`, `query->plainv`, 
-`query->plainv-with-ids` or custom). 
+```clojure
+(require '[manifold.stream :as st])
+
+(def stream (-> (f/coll db "positions")
+                (f/filter= {"exchange" "bitmex" 
+                            "account"  1}) 
+                f/->stream))
+
+(st/consume println stream)
+
+(st/close! stream) ; when you don't need updates anymore.
+```
+
+Both `->atom` and `->stream` can also take a map with keys `error-handler` and a `plain-fn` that takes a snapshot
+and returns clojure data. Built-in plain-fns are `ds->plain` and `ds->plain-with-id` for document
+snapshots and `qs->plain-map`, `qs->plainv` and `qs->plainv-with-ids` for query snapshots. Default 
+is `snapshot->data`, which uses `ds->plain` for documents and `qs-plain-map` for queries. Of course,
+you can pass `identity` if you just want the underlying snapshot.
 
 If you need a lower level utility, you can use `add-listener`. It takes a 2-arity 
 function and merely reifies it as an `EventListener`. The function `changes` might be useful:
@@ -143,9 +159,9 @@ and `:old-index` keys. An example that just prints the ids of added, removed or 
     (f/add-listener (fn [s e]
                       (doseq [{:keys [type reference]} (f/changes s)]
                         (case type
-                          :added (println "Added doc:" (f/id reference))
+                          :added    (println "Added doc:" (f/id reference))
                           :modified (println "Modified doc:" (f/id reference))
-                          :removed (println "Deleted doc:" (f/id reference)))))))
+                          :removed  (println "Deleted doc:" (f/id reference)))))))
 ```
 
 Read upstream docs 

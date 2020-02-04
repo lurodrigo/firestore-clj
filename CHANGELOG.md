@@ -1,6 +1,11 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
+## 0.3.4 - 2020-02-04
+### Added 
+* print methods for `DocumentReference`, `DocumentSnapshot`, `CollectionReference` and `QuerySnapshot`.
+* `->stream` for pushing snapshot updates to a manifold stream.
+
 ## 0.3.3 - 2020-02-04
 ### Added
 * `list-colls`, `changes`
@@ -67,4 +72,4 @@ representation of objs as data.## 0.3.0 - 2020-01-31
 
 ## 0.1.0 - 2020-01-28
 ### Added
-- First release
+- First release.
