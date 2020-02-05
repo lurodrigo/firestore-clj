@@ -1,7 +1,7 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
-## 1.1.0 - 2020-02-05
+## 1.1.1 - 2020-02-05
 ### Added 
 * `ref`, `doc-snaps`, `delete-all!`, `delete-all!*`, `offset`, `range`, `colls`, `firestore`,
  `select`, `start-at`, `start-after`, `end-at`, `end-before`, `geo-point`, `lat-lon`, `coll-group`
