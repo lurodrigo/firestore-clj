@@ -25,6 +25,37 @@ you can just provide the project-id using `default-client`:
 (def db (f/default-client "project-id"))
 ```
 
+## Collections, documents, and subcollections
+
+`doc`, `docs`, `coll`, `colls` are the basic functiones here.
+
+`doc` gets a reference for the doc with given path relative to its argument, or a reference to a new one if the argument is 
+a collection and no path is given. `coll` gets a collection (relative to root) or subcollection (relative to a document). 
+
+
+```clojure
+(f/doc db "accounts/account1")
+(f/doc (f/coll db "accounts") "account1") ; same as above
+(f/doc db "accounts/account1/subcoll1/subdoc1") ; nesting is allowed
+(f/doc (f/coll db "accounts")) ; reference to a new document with auto-generated id 
+
+(f/coll db "accounts/account1/subcoll1")
+(f/coll (f/doc db "accounts/account1/") "subcoll1") ; same as above
+```
+
+`docs` gets all documents of a collection, or maps over `doc` if a sequence of paths is given.
+`colls` gets all collections (relative to root) or subcolletions (relative to a document), or maps over `coll` if a sequence of paths is given
+
+```clojure
+(f/docs (f/coll db "accounts")) ; all documents from accounts
+(f/docs (f/coll db "accounts") ["account1" "account2"]) ; these two documents from accounts
+(f/docs db ["accounts/account1" "accounts/account2"])
+
+(f/colls db) ; all collections at root level
+(f/colls (f/doc "accounts/account1")) ; all subcollections
+(f/colls db ["accounts" "positions"])
+```
+
 ## Writing data
 
 We provide the methods `add!`, `set!`, `create!`, `assoc!`, `dissoc!`, `merge!` and `delete!`. 
@@ -37,25 +68,16 @@ Additionally, the functions `server-timestamp`, `inc`, `mark-for-deletion`,
     (f/add! {"name"     "account-x"
              "exchange" "bitmex"}))
 
-; gets reference for document "xxxx", which may or may not exist
-(def doc (f/doc db "accounts/xxxx"))
+(def doc (-> (f/doc "accounts/xxxx")
+             (f/set!{"name"        "account-x"
+                     "exchange"    "bitmex"
+                     "start_date"  (f/server-timestamp)}) ; creates doc (or overwrites it it already exists)
+             (f/assoc! "trade_count" 0) ; updates one or more fields
+             (f/merge! {"trade_count" (f/inc 1)
+                        "active"      true}) ; updates one or more fields using a map
+             (f/dissoc! "trade_count" "active"))) ; deletes fields
 
-; creates it (or overwrites it if it already exists)
-(f/set! doc {"name"        "account-x"
-             "exchange"    "bitmex"
-             "start_date"  (f/server-timestamp)})
-
-; updates one or more fields
-(f/assoc! doc "trade_count" 0)
-
-; updates one or more fields using a map
-(f/merge! doc {"trade_count" (f/inc 1)
-               "active"      true})
-
-; deletes fields
-(f/dissoc! doc "trade_count" "active")
-
-; deletes it
+; deletes doc
 (f/delete! doc)
 ```
 
@@ -74,14 +96,20 @@ We provide the query functions below (along with corresponding Java API methods)
 | `filter-contains`     | `.whereArrayContains() ` |
 | `filter-contains-any` | `.whereArrayContainsAny() ` |
 | `sort-by`     | `.orderBy()` |
-| `take`         | `.limit()` |
+| `limit`         | `.limit()` |
+| `offset`         | `.offset()` |
+| `range`          | `.offset().limit()` |
+
+**Gotchas:** `limit` and  `offset` don't have the same semantics of `take` and `drop`. They are commutative,
+so both `(-> q (t/offset 2) (t/limit 3))` and `(-> q (t/limit 3) (t/offset 2))` will return query results at positions
+2, 3, 4. Also, you can't chain multiple offsets and limits, only the last call to each is valid.
 
 You can use `pull` to fetch the results as a map. Here's an example:
 
 ```clojure
 (-> (f/coll db "positions")
     (f/filter= "exchange" "bitmex")
-    (f/take 2)
+    (f/limit 2)
     f/pull)
 ``` 
 
@@ -203,13 +231,12 @@ You can use both `pull` and `pull-docs` in a transaction, passing the `Transacti
 
 ## Conveniences
 
-We've also written a few convenience functions for common types of transactions. 
+We've also written a few convenience functions for common types of transactions and batches writes. 
 
 ### Updating a single field:
 
 ```clojure
-(f/update-field! db
-                 (-> (f/coll db "accounts")
+(f/update-field! (-> (f/coll db "accounts")
                      (f/doc "my_account"))
                  "balance" * 2)
 ```
@@ -217,8 +244,7 @@ We've also written a few convenience functions for common types of transactions.
 ### Updating an entire doc
 
 ```clojure
-(f/update! db
-           (-> (f/coll db "accounts")
+(f/update! (-> (f/coll db "accounts")
                (f/doc "my_account"))
            #(-> (update % "balance" * 2)
                 (update "tx_count" inc)))
@@ -229,17 +255,38 @@ We've also written a few convenience functions for common types of transactions.
 Over a vector of document references:
 
 ```clojure
-(f/map! db (-> (f/coll db "accounts")
-               (f/docs ["my_account" "your_account"]))
+(f/map! (-> (f/coll db "accounts")
+            (f/docs ["my_account" "your_account"]))
         #(update % "balance" * 2))
 ```
 
 Over results of a query:
 
 ```clojure
-(f/map! db (-> (f/coll db "accounts")
-               (f/filter< "balance" 1000))
+(f/map! (-> (f/coll db "accounts")
+            (f/filter< "balance" 1000))
         #(assoc % "balance" 1000))
+```
+
+### Deleting multiple docs
+
+In most cases `delete-all!` is enough. It accepts queries, including collections. It
+queries and writes in batches for efficiency.
+
+```clojure
+(f/delete-all! (f/coll db "accounts"))
+(f/delete-all! (-> (f/coll db "accounts")
+                   (f/filter= "exchange" "deribit")))
+```
+
+However, it doesn't work if the queries contain limits or offsets, since they can't be chained
+and they are used internally for batching. In this case, use `delete-all!*`. It 
+fetches all query results once and deletes in batches, therefore potentially consuming
+more memory for a while. 
+
+```clojure
+(f/delete-all!* (-> (f/coll db "accounts")
+                    (f/limit 3)))
 ```
 
 ## Design decisions 
@@ -263,4 +310,4 @@ Java objects.
 
 Copyright © 2020 Polvo Technologies. 
 
-Distributed under the MIT License
+Distributed under the MIT License.

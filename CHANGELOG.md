@@ -1,6 +1,21 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
+## 1.1.0 - 2020-02-05
+### Added 
+* `ref`, `doc-snaps`, `delete-all!`, `delete-all!*`, `offset`, `range`, `colls`, `firestore`.
+* support for subcollections
+
+### Modified
+* renamed `take` to `limit` for semantic reasons.
+
+### Removed
+* `list-colls` 
+
+### Modified
+* `update!`, `update-field!` and `map!` do not need take a `db` parameter anymore, since
+it can be inferred.
+
 ## 1.0.0 - 2020-02-04
 ### Added 
 * print methods for `DocumentReference`, `DocumentSnapshot`, `CollectionReference` and `QuerySnapshot`.
@@ -16,7 +31,7 @@ All notable changes to this project will be documented in this file. This change
 ### Modified
 * `doc` and `docs` now accept a `Firestore` parameter (provided full paths to docs)
 * `id` now accepts DocumentSnapshot and CollectionReference parameters.
-* `detach` now accepts ListenerRegistration too
+* `detach` now accepts ListenerRegistration too.
 
 ## 0.3.2 - 2020-01-01
 ### Modified

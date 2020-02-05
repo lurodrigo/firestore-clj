@@ -1,5 +1,5 @@
 (ns firestore-clj.core
-  (:refer-clojure :exclude [set set! merge merge! assoc assoc! dissoc dissoc! take inc update! count])
+  (:refer-clojure :exclude [set set! merge merge! assoc assoc! dissoc dissoc! range inc update! count ref])
   (:require [clojure.core :as core]
             [clojure.core.match :refer [match]]
             [clojure.java.io :as io]
@@ -64,12 +64,24 @@
   [^DocumentReference dr]
   (.getParent dr))
 
+(defn ref
+  "Gets a reference to the document this snapshot refers to."
+  [^QueryDocumentSnapshot ds]
+  (.getReference ds))
+
 (defn path
   "A string representing the path of the referenced document or collection."
   [r]
   (condp instance? r
     DocumentReference (.getPath ^DocumentReference r)
     CollectionReference (.getPath ^CollectionReference r)))
+
+(defn firestore
+  "Gets the Firestore instance associated with this query."
+  [q]
+  (condp instance? q
+    Query (.getFirestore ^Query q)
+    DocumentReference (.getFirestore ^DocumentReference q)))
 
 (defn update-time
   "The time at which this document was last updated."
@@ -180,16 +192,22 @@
 
 (defn coll
   "Returns a CollectionReference for the collection of given name."
-  ^CollectionReference [^Firestore db ^String coll-name]
-  (.collection db coll-name))
+  ^CollectionReference [r ^String coll-name]
+  (condp instance? r
+    Firestore (.collection ^Firestore r coll-name)
+    DocumentReference (.collection ^DocumentReference r coll-name)))
 
-(defn list-colls
-  "Lists all collections"
-  [^Firestore db]
-  (into [] (.listCollections db)))
+(defn colls
+  "Returns collections or subcollections as a vector of CollectionReference."
+  ([d]
+   (into [] (condp instance? d
+              Firestore (.listCollections ^Firestore d)
+              DocumentReference (.listCollections ^DocumentReference d))))
+  ([d cs]
+   (mapv (partial coll d) cs)))
 
 (defn doc
-  "Gets a DocumentReference given CollectionReference and an id or Firestore and path. If id is not given, it will point
+  "Gets a DocumentReference given CollectionReference or Firestore and a path. If path is not given, it will point
   to a new document with an auto-generated-id"
   (^DocumentReference [^CollectionReference cr]
    (.document cr))
@@ -199,9 +217,16 @@
      Firestore (.document ^Firestore cr id))))
 
 (defn docs
-  "Gets a vector of `DocumentReference`s, given a vector of ids"
-  [c ds]
-  (mapv (partial doc c) ds))
+  "Gets a vector of `DocumentReference`s."
+  ([^CollectionReference c]
+   (into [] (.listDocuments c)))
+  ([c ds]
+   (mapv (partial doc c) ds)))
+
+(defn doc-snaps
+  "Gets DocumentSnapshots from a QuerySnapshot"
+  [^QuerySnapshot qs]
+  (into [] (.getDocuments qs)))
 
 ; PRINT METHODS
 
@@ -226,7 +251,7 @@
                    (str "Document does not exist."))))))
 
 (defmethod print-method CollectionReference [^CollectionReference cr ^Writer w]
-  (let [l (.listDocuments cr)
+  (let [l (docs cr)
         [t d] (split-at 3 (seq l))]
     (.write w
             (str "CollectionReference for \"" (id cr) "\"\n"
@@ -240,8 +265,8 @@
                      "\n\n ...)"))))))
 
 (defmethod print-method QuerySnapshot [^QuerySnapshot qs ^Writer w]
-  (let [l (.getDocuments qs)
-        [t d] (split-at 3 (seq l))]
+  (let [l (doc-snaps qs)
+        [t d] (split-at 3 l)]
     (.write w
             (str "QuerySnapshot instance\n"
                  "Read time: " (read-time qs) "\n"
@@ -320,7 +345,7 @@
                                        DocumentChange$Type/MODIFIED :modified})
 
 (defn changes
-  "Returns a vector of changes. Each change is a map with keys `:type`, `:reference`, `:new-index`,
+  "Returns a vector of changes. Each change is a map with keys `:type`, `:ref`, `:new-index`,
   and `:old-index`. Type is one of `#{:added :removed :modified}`."
   [^QuerySnapshot s]
   (mapv (fn [^DocumentChange dc]
@@ -461,27 +486,70 @@
 
 (defn update!
   "Updates a document by applying a function to it."
-  ([^Firestore db ^DocumentReference dr f & args]
-   (transact! db (fn [tx]
-                   (let [data (pull-doc dr tx)]
-                     (set tx dr (apply f data args)))))))
+  ([^DocumentReference dr f & args]
+   (transact! (firestore dr) (fn [tx]
+                               (let [data (pull-doc dr tx)]
+                                 (set tx dr (apply f data args)))))))
 
 (defn update-field!
   "Updates a single field of a document by applying a function to it."
-  [^Firestore db ^DocumentReference dr field f & args]
-  (update! db dr (fn [data]
-                   (apply update data field f args))))
+  [^DocumentReference dr field f & args]
+  (update! (firestore dr) dr (fn [data]
+                               (apply update data field f args))))
 
 (defn map!
   "Updates all docs in a vector or query by applying a function to them"
-  [^Firestore db q f & args]
-  (transact! db (fn [tx]
-                  (let [drs      (if (instance? Query q)
-                                   (let [doclist (.getDocuments ^QuerySnapshot (.get ^ApiFuture (.get ^Transaction tx ^Query q)))]
-                                     (mapv #(.getReference ^QueryDocumentSnapshot %) doclist))
-                                   q)
-                        all-data (pull-docs drs tx)]
-                    (mapv #(set tx %1 (apply f %2 args)) drs all-data)))))
+  [q f & args]
+  (transact! (firestore q) (fn [tx]
+                             (let [drs      (if (instance? Query q)
+                                              (->> (query-snapshot q tx)
+                                                   (doc-snaps)
+                                                   (mapv ref))
+                                              q)
+                                   all-data (pull-docs drs tx)]
+                               (mapv #(set tx %1 (apply f %2 args)) drs all-data)))))
+
+(declare limit)
+(declare offset)
+
+(defn delete-all!
+  "Deletes all documents from a query. Batches for efficiency. Query must not contain limit or offset."
+  ([^Query cr]
+   (delete-all! cr 500))
+  ([^Query cr batch-size]
+   (loop []
+     (let [b     (batch (firestore cr))
+           snaps (->> (limit cr batch-size)
+                      (query-snapshot)
+                      (doc-snaps))
+           len   (core/count snaps)]
+
+       (doseq [snap snaps]
+         (delete b (ref snap)))
+
+       (commit! b)
+
+       (when (>= len batch-size)
+         (recur))))))
+
+(defn delete-all!*
+  "Deletes all documents from a query. Batches for efficiency. Fetches all results in memory."
+  ([^Query cr]
+   (delete-all!* cr 500))
+  ([^Query cr batch-size]
+   (let [b     (batch (firestore cr))
+         snaps (->> (limit cr batch-size)
+                    (query-snapshot)
+                    (doc-snaps))]
+
+     (loop [[delete-now remaining] (split-at batch-size snaps)]
+       (doseq [snap delete-now]
+         (delete b (ref snap)))
+
+       (commit! b)
+
+       (when-not (empty? remaining)
+         (recur remaining))))))
 
 ; QUERIES
 
@@ -515,10 +583,21 @@
   [^Query q ^String field value]
   (.whereGreaterThanOrEqualTo q field value))
 
-(defn take
+(defn limit
   "Limits results to a certain number."
   [^Query q n]
   (.limit q n))
+
+(defn offset
+  "Skips the first n results."
+  [^Query q n]
+  (.offset q n))
+
+(defn range
+  "Gets a range"
+  [^Query q start end]
+  (-> (offset q start)
+      (limit (- end start))))
 
 (defn filter-in
   "Filters where field is one of the values in arr."
