@@ -27,7 +27,7 @@ you can just provide the project-id using `default-client`:
 
 ## Collections, documents, and subcollections
 
-`doc`, `docs`, `coll`, `colls` are the basic functiones here.
+`doc`, `docs`, `coll`, `colls` and `coll-group` are the basic functiones here.
 
 `doc` gets a reference for the doc with given path relative to its argument, or a reference to a new one if the argument is 
 a collection and no path is given. `coll` gets a collection (relative to root) or subcollection (relative to a document). 
@@ -54,6 +54,12 @@ a collection and no path is given. `coll` gets a collection (relative to root) o
 (f/colls db) ; all collections at root level
 (f/colls (f/doc "accounts/account1")) ; all subcollections
 (f/colls db ["accounts" "positions"])
+```
+
+`coll-group` returns a query including docs in all collections or subcollections with a given id.
+
+```clojure
+(f/coll-group db "subcoll")
 ```
 
 ## Writing data
@@ -95,6 +101,11 @@ We provide the query functions below (along with corresponding Java API methods)
 | `filter-in`           | `.whereIn() ` |
 | `filter-contains`     | `.whereArrayContains() ` |
 | `filter-contains-any` | `.whereArrayContainsAny() ` |
+| `start-at` | `.startAt()` |
+| `start-after` | `.startAfter()` |
+| `end-at` | `.endAt()` |
+| `end-before` | `.endBefore()` |
+| `select` | `.select()` |
 | `sort-by`     | `.orderBy()` |
 | `limit`         | `.limit()` |
 | `offset`         | `.offset()` |
@@ -129,6 +140,7 @@ also need the ids.
 (-> (f/coll db "positions")
     (f/filter= "account" 1)
     (f/sort-by "size") ; descending: (f/sort-by "size" :desc) 
+    (f/start-at 10) ; ignore residual positions
     f/pullv) ; 
 ```
 If you have the appropriate indexes, you can `sort-by` multiple fields:
@@ -300,11 +312,10 @@ more memory for a while.
 
 We welcome [PRs](https://github.com/polvotech/firestore-clj/compare). Here are some things that need some work:
 
-* Handle subcollections
-* Data pagination and cursors
-* More convenience around the objects returned from operations. Right now we simply return the boring underlying
-Java objects.
-* Version range warnings?
+* Preconditions
+* Set options
+* More convenience around the objects returned from operations
+* Investigate `areTimestampsInSnapshotsEnabled` to avoid conversions.
 
 ## License
 

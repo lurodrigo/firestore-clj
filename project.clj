@@ -10,4 +10,6 @@
   :global-vars {*warn-on-reflection* true}
   :jar-exclusions [#"user\.clj"]
   :uberjar-exclusions [#"user\.clj"]
+  :source-paths ["src/clj"]
+  :java-source-paths ["src/java"]
   :profiles {:dev {:dependencies [[org.clojure/algo.generic "0.1.3"]]}})

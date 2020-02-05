@@ -10,12 +10,16 @@
            (com.google.api.core ApiFuture)
            (com.google.auth.oauth2 GoogleCredentials)
            (com.google.cloud Timestamp)
-           (com.google.cloud.firestore Firestore QuerySnapshot CollectionReference EventListener DocumentReference DocumentSnapshot Query$Direction FieldValue Query ListenerRegistration WriteBatch Transaction UpdateBuilder Transaction$Function TransactionOptions QueryDocumentSnapshot DocumentChange$Type DocumentChange)
+           (com.google.cloud.firestore Firestore QuerySnapshot CollectionReference EventListener DocumentReference
+                                       DocumentSnapshot Query$Direction FieldValue Query ListenerRegistration WriteBatch
+                                       Transaction UpdateBuilder Transaction$Function TransactionOptions
+                                       QueryDocumentSnapshot DocumentChange$Type DocumentChange GeoPoint Precondition)
            (com.google.firebase FirebaseApp FirebaseOptions FirebaseOptions)
            (com.google.firebase.cloud FirestoreClient)
            (java.io Writer)
-           (java.util HashMap List)
-           (java.util.concurrent Executor)))
+           (java.util HashMap List Date)
+           (java.util.concurrent Executor)
+           (firestore_clj VariadicHelper)))
 
 (defn- build-hash-map
   "Helper for build java.util.HashMap without reflection."
@@ -86,19 +90,19 @@
 (defn update-time
   "The time at which this document was last updated."
   [^DocumentSnapshot ds]
-  (.getUpdateTime ds))
+  (.toDate (.getUpdateTime ds)))
 
 (defn read-time
   "The time at which this snapshot was read."
   [q]
   (condp instance? q
-    DocumentSnapshot (.getReadTime ^DocumentSnapshot q)
-    QuerySnapshot (.getReadTime ^QuerySnapshot q)))
+    DocumentSnapshot (.toDate ^Timestamp (.getReadTime ^DocumentSnapshot q))
+    QuerySnapshot (.toDate ^Timestamp (.getReadTime ^QuerySnapshot q))))
 
 (defn create-time
   "The time at which this document was created."
   [^DocumentSnapshot ds]
-  (.getCreateTime ds))
+  (.toDate (.getCreateTime ds)))
 
 (defn count
   "Number of documents in a QuerySnapshot"
@@ -206,6 +210,11 @@
   ([d cs]
    (mapv (partial coll d) cs)))
 
+(defn coll-group
+  "Returns a query that includes all documents contained in a collection or subcollection with the given id."
+  [^Firestore db coll-id]
+  (.collectionGroup db coll-id))
+
 (defn doc
   "Gets a DocumentReference given CollectionReference or Firestore and a path. If path is not given, it will point
   to a new document with an auto-generated-id"
@@ -230,11 +239,19 @@
 
 ; PRINT METHODS
 
+(defmethod print-method Firestore [^Firestore db ^Writer w]
+  (let [subcolls (colls db)]
+    (.write w
+            (str "Firestore instance. \n"
+                 "Collections: " (mapv id subcolls)))))
+
 (defmethod print-method DocumentReference [^DocumentReference dr ^Writer w]
-  (let []
+  (let [subcolls (colls dr)]
     (.write w
             (str "DocumentReference for \"" (path dr) "\"\n"
-                 "Contents:\n" (pull-doc dr)))))
+                 "Contents:\n" (pull-doc dr)
+                 (if-not (empty? subcolls)
+                   (str "\nSubcollections: " (mapv id subcolls)))))))
 
 (defmethod print-method DocumentSnapshot [^DocumentSnapshot ds ^Writer w]
   (let [exists? (.exists ds)]
@@ -351,7 +368,7 @@
   (mapv (fn [^DocumentChange dc]
           {:type      (change-enum->change-kw (.getType dc))
            :reference (some-> (.getDocument dc)
-                              (.getReference))
+                              ref)
            :new-index (.getNewIndex dc)
            :old-index (.getOldIndex dc)})
         (.getDocumentChanges s)))
@@ -416,14 +433,18 @@
   (-> (.delete context dr)))
 
 (defn merge!
-  "Updates fields of a document."
-  [^DocumentReference dr m]
-  (-> dr (.update (build-hash-map m)) (.get)))
+  "Updates fields of a document. Accepts an updated-time as precondition."
+  ([^DocumentReference dr m]
+   (-> dr (.update (build-hash-map m)) (.get)))
+  ([^DocumentReference dr m updated-time]
+   (-> dr (.update (build-hash-map m) (Precondition/updatedAt (Timestamp/of ^Date updated-time))) (.get))))
 
 (defn merge
   "Updates field of a document in a batched write/transaction context."
-  [^UpdateBuilder context ^DocumentReference dr m]
-  (.update context dr (build-hash-map m)))
+  ([^UpdateBuilder context ^DocumentReference dr m]
+   (.update context dr (build-hash-map m)))
+  ([^UpdateBuilder context ^DocumentReference dr m updated-time]
+   (.update context dr (build-hash-map m) (Precondition/updatedAt (Timestamp/of ^Date updated-time)))))
 
 (defn assoc!
   "Associates new fields and values."
@@ -538,8 +559,7 @@
    (delete-all!* cr 500))
   ([^Query cr batch-size]
    (let [b     (batch (firestore cr))
-         snaps (->> (limit cr batch-size)
-                    (query-snapshot)
+         snaps (->> (query-snapshot cr)
                     (doc-snaps))]
 
      (loop [[delete-now remaining] (split-at batch-size snaps)]
@@ -593,6 +613,11 @@
   [^Query q n]
   (.offset q n))
 
+(defn select
+  "Selects given fields"
+  [^Query q & fields]
+  (VariadicHelper/select q (into-array String fields)))
+
 (defn range
   "Gets a range"
   [^Query q start end]
@@ -635,3 +660,45 @@
                                        (.orderBy q' ^String field)))))
               q
               conformed))))
+
+(defn start-at
+  "Starts results at the provided document, or at the provided fields relative to the order of the query."
+  [^Query q & args]
+  (let [fst (first args)]
+    (condp instance? fst
+      DocumentSnapshot (.startAt q ^DocumentSnapshot fst)
+      Object (VariadicHelper/startAt q (into-array Object args)))))
+
+(defn start-after
+  "Starts results after the provided document, or at the provided fields relative to the order of the query."
+  [^Query q & args]
+  (let [fst (first args)]
+    (condp instance? fst
+      DocumentSnapshot (.startAfter q ^DocumentSnapshot fst)
+      Object (VariadicHelper/startAfter q (into-array Object args)))))
+
+(defn end-at
+  "Ends results at the provided document, or at the provided fields relative to the order of the query."
+  [^Query q & args]
+  (let [fst (first args)]
+    (condp instance? fst
+      DocumentSnapshot (.endAt q ^DocumentSnapshot fst)
+      Object (VariadicHelper/endAt q (into-array Object args)))))
+
+(defn end-before
+  "Ends results before the provided document, or at the provided fields relative to the order of the query."
+  [^Query q & args]
+  (let [fst (first args)]
+    (condp instance? fst
+      DocumentSnapshot (.endBefore q ^DocumentSnapshot fst)
+      Object (VariadicHelper/endBefore q (into-array Object args)))))
+
+(defn geo-point
+  "Creates a geocode object from a lat lon pair."
+  [[lat lon]]
+  (GeoPoint. lat lon))
+
+(defn lat-lon
+  "Returns a lat lon pair from a GeoPoint."
+  [^GeoPoint g]
+  [(.getLatitude g) (.getLongitude g)])

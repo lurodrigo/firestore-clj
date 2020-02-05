@@ -3,8 +3,10 @@ All notable changes to this project will be documented in this file. This change
 
 ## 1.1.0 - 2020-02-05
 ### Added 
-* `ref`, `doc-snaps`, `delete-all!`, `delete-all!*`, `offset`, `range`, `colls`, `firestore`.
+* `ref`, `doc-snaps`, `delete-all!`, `delete-all!*`, `offset`, `range`, `colls`, `firestore`,
+ `select`, `start-at`, `start-after`, `end-at`, `end-before`, `geo-point`, `lat-lon`, `coll-group`
 * support for subcollections
+* support for collection groups
 
 ### Modified
 * renamed `take` to `limit` for semantic reasons.
