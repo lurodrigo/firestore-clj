@@ -539,11 +539,11 @@
    (delete-all! cr 500))
   ([^Query cr batch-size]
    (loop []
-     (let [b     (batch (firestore cr))
-           snaps (->> (limit cr batch-size)
+     (let [snaps (->> (limit cr batch-size)
                       (query-snapshot)
                       (doc-snaps))
-           len   (core/count snaps)]
+           len   (core/count snaps)
+           b     (batch (firestore cr))]
 
        (doseq [snap snaps]
          (delete b (ref snap)))
@@ -553,23 +553,54 @@
        (when (>= len batch-size)
          (recur))))))
 
+(defn batch-delete!
+  "Deletes all documents in a seq of DocumentReference."
+  [doc-seq batch-size]
+  (when-let [d (first doc-seq)]
+    (let [fstore (firestore d)]
+
+      (loop [[delete-now remaining] (split-at batch-size doc-seq)]
+
+        (let [b (batch fstore)]
+          (doseq [r delete-now]
+            (delete b r))
+
+          (commit! b)
+
+          (when-not (empty? remaining)
+            (recur (split-at batch-size remaining))))))))
+
 (defn delete-all!*
   "Deletes all documents from a query. Batches for efficiency. Fetches all results in memory."
   ([^Query cr]
    (delete-all!* cr 500))
   ([^Query cr batch-size]
-   (let [b     (batch (firestore cr))
-         snaps (->> (query-snapshot cr)
-                    (doc-snaps))]
+   (let [snaps (doc-snaps (query-snapshot cr))]
+     (batch-delete! (mapv ref snaps) batch-size))))
 
-     (loop [[delete-now remaining] (split-at batch-size snaps)]
-       (doseq [snap delete-now]
-         (delete b (ref snap)))
+(defn subdocs
+  "A lazy sequence including given document and all documents in its subcollections."
+  [^DocumentReference dr]
+  (lazy-seq
+    (cons dr
+          (let [children (mapcat docs (colls dr))]
+            (when (seq? children)
+              (mapcat subdocs children))))))
 
-       (commit! b)
-
-       (when-not (empty? remaining)
-         (recur remaining))))))
+(defn purge!
+  "If a document, deletes it and all its subcollections recursively. If a collection or query,
+  purges all its documents. Operates in batches."
+  ([root]
+   (purge! root 500))
+  ([root batch-size]
+   (let [doclist (condp instance? root
+                   DocumentReference (subdocs root)
+                   CollectionReference (mapcat subdocs (docs root))
+                   Query (->> (query-snapshot root)
+                              doc-snaps
+                              (map ref)
+                              (mapcat subdocs)))]
+     (batch-delete! doclist batch-size))))
 
 ; QUERIES
 

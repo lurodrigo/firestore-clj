@@ -301,6 +301,9 @@ more memory for a while.
                     (f/limit 3)))
 ```
 
+A more generic function is `batch-delete!`, which deletes an arbitrary seq of document references
+in batches. You can also use `purge!`, which deletes documents, collections and queries recursively.
+
 ## Design decisions 
 
 * Many operations that were async by default on the Java API are sync here. That's mainly because you can't block

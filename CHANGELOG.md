@@ -1,6 +1,10 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
+## 1.1.3 - 2020-02-06
+### Added
+* `batch-delete!`, `purge!`
+
 ## 1.1.2 - 2020-02-05
 ### Added 
 * `ref`, `doc-snaps`, `delete-all!`, `delete-all!*`, `offset`, `range`, `colls`, `firestore`,
