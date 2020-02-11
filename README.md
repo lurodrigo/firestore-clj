@@ -318,7 +318,6 @@ in batches. You can also use `purge!`, which deletes documents, collections and 
 We welcome [PRs](https://github.com/polvotech/firestore-clj/compare). Here are some things that need some work:
 
 * Preconditions
-* Set options
 * More convenience around the objects returned from operations
 * Investigate `areTimestampsInSnapshotsEnabled` to avoid conversions.
 
