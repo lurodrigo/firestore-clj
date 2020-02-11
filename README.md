@@ -66,7 +66,9 @@ a collection and no path is given. `coll` gets a collection (relative to root) o
 
 We provide the methods `add!`, `set!`, `create!`, `assoc!`, `dissoc!`, `merge!` and `delete!`. 
 Additionally, the functions `server-timestamp`, `inc`, `mark-for-deletion`, 
-`array-union` and `array-remove` can be used as special values on a `set!`, `merge!` and `assoc!` operation. Some examples:
+`array-union` and `array-remove` can be used as special values on a `set!`, `merge!` and `assoc!` operation. 
+`set!` (and its transactional/batch counterpart `set`) can receive a `:merge` to merge fields instead
+ of overwriting, and a `:merge-fields` to specify which fields to merge. Some examples:
 
 ```clojure
 ; creates new document with random id
@@ -75,9 +77,9 @@ Additionally, the functions `server-timestamp`, `inc`, `mark-for-deletion`,
              "exchange" "bitmex"}))
 
 (def doc (-> (f/doc "accounts/xxxx")
-             (f/set!{"name"        "account-x"
-                     "exchange"    "bitmex"
-                     "start_date"  (f/server-timestamp)}) ; creates doc (or overwrites it it already exists)
+             (f/set! {"name"        "account-x"
+                      "exchange"    "bitmex"
+                      "start_date"  (f/server-timestamp)}) ; creates doc (or overwrites it it already exists)
              (f/assoc! "trade_count" 0) ; updates one or more fields
              (f/merge! {"trade_count" (f/inc 1)
                         "active"      true}) ; updates one or more fields using a map

@@ -1,6 +1,7 @@
 package firestore_clj;
 
 import com.google.cloud.firestore.Query;
+import com.google.cloud.firestore.SetOptions;
 
 public class VariadicHelper {
     /*
@@ -24,5 +25,9 @@ public class VariadicHelper {
 
     public static Query endBefore(Query q, Object[] args) {
         return q.endBefore(args);
+    }
+
+    public static SetOptions mergeFields(String[] fields) {
+        return SetOptions.mergeFields(fields);
     }
 }

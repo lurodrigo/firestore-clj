@@ -13,7 +13,7 @@
            (com.google.cloud.firestore Firestore QuerySnapshot CollectionReference EventListener DocumentReference
                                        DocumentSnapshot Query$Direction FieldValue Query ListenerRegistration WriteBatch
                                        Transaction UpdateBuilder Transaction$Function TransactionOptions
-                                       QueryDocumentSnapshot DocumentChange$Type DocumentChange GeoPoint Precondition)
+                                       QueryDocumentSnapshot DocumentChange$Type DocumentChange GeoPoint Precondition WriteResult SetOptions)
            (com.google.firebase FirebaseApp FirebaseOptions FirebaseOptions)
            (com.google.firebase.cloud FirestoreClient)
            (java.io Writer)
@@ -23,7 +23,7 @@
 
 (defn- build-hash-map
   "Helper for build java.util.HashMap without reflection."
-  [m]
+  ^HashMap [m]
   (reduce (fn [^HashMap h [k v]]
             (do
               (.put h k v)
@@ -72,6 +72,11 @@
   "Gets a reference to the document this snapshot refers to."
   [^QueryDocumentSnapshot ds]
   (.getReference ds))
+
+(defn exists?
+  "Checks whether the document snapshot exists."
+  [^DocumentSnapshot ds]
+  (.exists ds))
 
 (defn path
   "A string representing the path of the referenced document or collection."
@@ -414,13 +419,32 @@
 
 (defn set!
   "Creates or overwrites a document."
-  [^DocumentReference dr m]
-  (-> dr (.set (build-hash-map m)) (.get)))
+  ([^DocumentReference dr m]
+   (-> (.set dr (build-hash-map m))
+       (.get)))
+  ([^DocumentReference dr m kw]
+   (let [options (case kw
+                   :merge (SetOptions/merge))]
+     (-> (.set dr (build-hash-map m) ^SetOptions options)
+         (.get))))
+  ([^DocumentReference dr m kw args]
+   (let [options (case kw
+                   :merge-fields (VariadicHelper/mergeFields (into-array String args)))]
+     (-> (.set dr (build-hash-map m) ^SetOptions options)
+         (.get)))))
 
 (defn set
   "Creates or overwrites a document in a batched write/transaction context."
-  [^UpdateBuilder context ^DocumentReference dr m]
-  (.set context dr (build-hash-map m)))
+  ([^UpdateBuilder context ^DocumentReference dr m]
+   (.set context dr (build-hash-map m)))
+  ([^UpdateBuilder context ^DocumentReference dr m kw]
+   (let [options (case kw
+                   :merge (SetOptions/merge))]
+     (.set context dr (build-hash-map m) ^SetOptions options)))
+  ([^UpdateBuilder context ^DocumentReference dr m kw args]
+   (let [options (case kw
+                   :merge-fields (VariadicHelper/mergeFields (into-array String args)))]
+     (.set context dr (build-hash-map m) ^SetOptions options))))
 
 (defn delete!
   "Deletes a document."
@@ -494,9 +518,9 @@
 
 (defn transact!
   "Performs a transaction. Optionally, you can specify an executor and the maximum number of attemps."
-  ([^Firestore db f]
+  (^Transaction [^Firestore db f]
    (.get (.runTransaction db (tx-option f))))
-  ([^Firestore db f {:keys [attempts executor] :as options}]
+  (^Transaction [^Firestore db f {:keys [attempts executor] :as options}]
    (.get (.runTransaction db
                           (tx-option f)
                           (match [attempts executor]
