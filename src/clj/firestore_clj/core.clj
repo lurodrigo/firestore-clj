@@ -144,38 +144,49 @@
   [^QuerySnapshot s]
   (into {} (qs->plainv-with-ids s)))
 
-(defn snapshot->data
+(defn snap->plain
   "Gets a DocumentSnapshot/CollectionSnapshot/QuerySnapshot's underlying data."
   [s]
   (condp instance? s
     DocumentSnapshot (ds->plain s)
     QuerySnapshot (qs->plain-map s)))
 
-(defn doc-snapshot
+(defn doc-snap
   "Gets a QueryDocumentSnapshot given a DocumentReference and possibly a Transaction."
   ([^DocumentReference dr]
    (.get ^ApiFuture (.get dr)))
   ([^DocumentReference dr ^Transaction t]
    (.get ^ApiFuture (.get t dr))))
 
-(defn query-snapshot
+(defn query-snap
   "Gets a QuerySnapshot given a Query and possibly a Transaction."
   ([^Query q]
    (.get ^ApiFuture (.get q)))
   ([^Query q ^Transaction t]
    (.get ^ApiFuture (.get t q))))
 
+(defn snap
+  "Gets a DocumentSnapshot or QuerySnapshot given a DocumentReference or Query."
+  ([q]
+   (condp instance? q
+     Query (query-snap q)
+     DocumentReference (doc-snap q)))
+  ([q ^Transaction t]
+   (condp instance? q
+     Query (query-snap q t)
+     DocumentReference (doc-snap q t))))
+
 (def ^{:doc "Pulls clojure data from a DocumentReference."}
-  pull-doc (comp ds->plain doc-snapshot))
+  pull-doc (comp ds->plain doc-snap))
 
 (def ^{:doc "Pulls results from a Query as clojure data."}
-  pull-query (comp qs->plain-map query-snapshot))
+  pull-query (comp qs->plain-map query-snap))
 
 (def ^{:doc "Pulls query results as a vector of document data."}
-  pullv (comp qs->plainv query-snapshot))
+  pullv (comp qs->plainv query-snap))
 
 (def ^{:doc "Pulls query results as a vector of pairs. Each pair has an id and document data"}
-  pullv-with-ids (comp qs->plainv-with-ids query-snapshot))
+  pullv-with-ids (comp qs->plainv-with-ids query-snap))
 
 (defn pull-docs
   "Pulls clojure data from a sequence of `DocumentReference`s, possibly inside a transaction context."
@@ -237,7 +248,7 @@
   ([c ds]
    (mapv (partial doc c) ds)))
 
-(defn doc-snaps
+(defn query-snap->doc-snaps
   "Gets DocumentSnapshots from a QuerySnapshot"
   [^QuerySnapshot qs]
   (into [] (.getDocuments qs)))
@@ -287,7 +298,7 @@
                      "\n\n ...)"))))))
 
 (defmethod print-method QuerySnapshot [^QuerySnapshot qs ^Writer w]
-  (let [l (doc-snaps qs)
+  (let [l (query-snap->doc-snaps qs)
         [t d] (split-at 3 l)]
     (.write w
             (str "QuerySnapshot instance\n"
@@ -329,7 +340,7 @@
   "Returns an atom holding the latest value of a DocumentReference or Query."
   ([q]
    (->atom q {}))
-  ([q {:keys [error-handler plain-fn] :or {error-handler identity plain-fn snapshot->data}}]
+  ([q {:keys [error-handler plain-fn] :or {error-handler identity plain-fn snap->plain}}]
    (let [a            (atom nil)
          registration (add-listener q (fn [s e]
                                         (if (some? e)
@@ -347,7 +358,7 @@
   "Returns a manifold stream pushing the latest values of a DocumentReference or Query."
   ([q]
    (->stream q {}))
-  ([q {:keys [error-handler plain-fn] :or {error-handler identity plain-fn snapshot->data}}]
+  ([q {:keys [error-handler plain-fn] :or {error-handler identity plain-fn snap->plain}}]
    (let [stream       (st/stream)
          registration (add-listener q (fn [s e]
                                         (if (some? e)
@@ -547,8 +558,8 @@
   [q f & args]
   (transact! (firestore q) (fn [tx]
                              (let [drs      (if (instance? Query q)
-                                              (->> (query-snapshot q tx)
-                                                   (doc-snaps)
+                                              (->> (query-snap q tx)
+                                                   (query-snap->doc-snaps)
                                                    (mapv ref))
                                               q)
                                    all-data (pull-docs drs tx)]
@@ -559,15 +570,15 @@
 
 (defn delete-all!
   "Deletes all documents from a query. Batches for efficiency. Query must not contain limit or offset."
-  ([^Query cr]
-   (delete-all! cr 500))
-  ([^Query cr batch-size]
+  ([^Query q]
+   (delete-all! q 500))
+  ([^Query q batch-size]
    (loop []
-     (let [snaps (->> (limit cr batch-size)
-                      (query-snapshot)
-                      (doc-snaps))
+     (let [snaps (->> (limit q batch-size)
+                      (query-snap)
+                      (query-snap->doc-snaps))
            len   (core/count snaps)
-           b     (batch (firestore cr))]
+           b     (batch (firestore q))]
 
        (doseq [snap snaps]
          (delete b (ref snap)))
@@ -595,11 +606,11 @@
             (recur (split-at batch-size remaining))))))))
 
 (defn delete-all!*
-  "Deletes all documents from a query. Batches for efficiency. Fetches all results in memory."
-  ([^Query cr]
-   (delete-all!* cr 500))
-  ([^Query cr batch-size]
-   (let [snaps (doc-snaps (query-snapshot cr))]
+  "Deletes all documents resulting from a query. Batches for efficiency. Fetches all results in memory."
+  ([^Query q]
+   (delete-all!* q 500))
+  ([^Query q batch-size]
+   (let [snaps (query-snap->doc-snaps (query-snap q))]
      (batch-delete! (mapv ref snaps) batch-size))))
 
 (defn subdocs
@@ -620,8 +631,8 @@
    (let [doclist (condp instance? root
                    DocumentReference (subdocs root)
                    CollectionReference (mapcat subdocs (docs root))
-                   Query (->> (query-snapshot root)
-                              doc-snaps
+                   Query (->> (query-snap root)
+                              query-snap->doc-snaps
                               (map ref)
                               (mapcat subdocs)))]
      (batch-delete! doclist batch-size))))

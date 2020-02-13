@@ -188,7 +188,7 @@ or stream updates as a [Manifold](https://github.com/ztellman/manifold) stream w
 Both `->atom` and `->stream` can also take a map with keys `error-handler` and a `plain-fn` that takes a snapshot
 and returns clojure data. Built-in plain-fns are `ds->plain` and `ds->plain-with-id` for document
 snapshots and `qs->plain-map`, `qs->plainv` and `qs->plainv-with-ids` for query snapshots. Default 
-is `snapshot->data`, which uses `ds->plain` for documents and `qs-plain-map` for queries. Of course,
+is `snap->plain`, which uses `ds->plain` for documents and `qs-plain-map` for queries. Of course,
 you can pass `identity` if you just want the underlying snapshot.
 
 If you need a lower level utility, you can use `add-listener`. It takes a 2-arity 
@@ -306,10 +306,39 @@ more memory for a while.
 A more generic function is `batch-delete!`, which deletes an arbitrary seq of document references
 in batches. You can also use `purge!`, which deletes documents, collections and queries recursively.
 
+## Idioms
+
+You might notice that most signatures use the same names for its arguments. Most of them are type-hinted, 
+but anyways, here are the conventions we follow: 
+
+| Names | Expected Object |
+| --- | ---  |
+| `db` | `Firestore` |
+| `dr` | `DocumentReference` |
+| `cr` | `CollectionReference` |
+| `q`  | `QuerySnapshot` |
+| `ds` | `DocumentSnapshot` or `QueryDocumentSnapshot` |
+| `t`  | `Transaction` |
+| `b`  | `WriteBatch` |
+| `context`   | `UpdateBuilder` (either `WriteBatch` or `Transaction`) |
+| `s`, `snap` | `QuerySnapshot`, `DocumentSnapshot` or `QueryDocumentSnapshot` | 
+| `plain`     | plain clojure maps or vectors |
+| `*->plain-something` | fns that turn `ds` or `qs` into plain data |
+| `pull-something` | fns that turn `dr`/`cr`/`q` into `plain` data (thus querying db) * |
+
+We sometimes opted for slightly longer names to avoid obfuscation. For example, `ds->plain` or `qs->plain-map` are fine, but
+`qs->dss` would be terrible so we opted for `query-snap->doc-snaps`.
+
+* Yes, pull fns are merely compositions of query-performing `snap`/`doc-snap`/`query-snap` with `->plain-something` fns provided for
+convenience. They are good defaults, but sometimes we need finer control. For instance, if we need to keywordize 
+values, we can write a simple `->plain-with-kw` fn and get a `pull-with-kw` merely `comp`ing with `snap`. That's a very neat
+idiom if you need to do both common pulls and `qs` manipulation inside `add-listener`.
+
 ## Design decisions 
 
-* Many operations that were async by default on the Java API are sync here. That's mainly because you can't block
-`ApiFuture`s with `deref`. If you want to go async, simply wrap with `future`.
+* Many operations that were async by default on the Java API are sync here, mainly because
+in our context that's what made sense, avoiding lots of derefs. If you want to go async, simply 
+wrap with `future` where appropriate.
 * We assume all maps have string keys. We do not convert keywords. You can use
 [`camel-snake-kebab`](https://clj-commons.org/camel-snake-kebab/) for doing conversions.
 
@@ -319,7 +348,8 @@ We welcome [PRs](https://github.com/polvotech/firestore-clj/compare). Here are s
 
 * Preconditions
 * More convenience around the objects returned from operations
-* Investigate `areTimestampsInSnapshotsEnabled` to avoid conversions.
+* Define default behavior regarding conversions between `Timestamp` and `java.util.Date`. Currently we perform conversions
+on reads (they are perfomed by the lib automatically on writes).
 
 ## License
 

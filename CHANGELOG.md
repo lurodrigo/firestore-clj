@@ -1,6 +1,17 @@
 # Change Log
 All notable changes to this project will be documented in this file. This change log follows the conventions of [keepachangelog.com](http://keepachangelog.com/).
 
+## 1.2.0 - 2020-02-13
+### Added 
+* `snap`, which gets a snapshot given a document reference or query. useful for compositions.
+
+### Renamed
+* Some renaming for consistency and intentfulness: 
+
+| old name | new name |
+| `doc-snaps` | `query-snap->doc-snaps` |
+| `snapshot->data` | `snap->plain` |
+
 ## 1.1.4 - 2020-02-06
 ### Added
 * `exists?`, signatures for using set options with `set` and `set!`.
