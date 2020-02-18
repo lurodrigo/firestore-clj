@@ -316,7 +316,8 @@ but anyways, here are the conventions we follow:
 | `db` | `Firestore` |
 | `dr` | `DocumentReference` |
 | `cr` | `CollectionReference` |
-| `q`  | `QuerySnapshot` |
+| `q` | `Query` |
+| `qs`  | `QuerySnapshot` |
 | `ds` | `DocumentSnapshot` or `QueryDocumentSnapshot` |
 | `t`  | `Transaction` |
 | `b`  | `WriteBatch` |
