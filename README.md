@@ -108,7 +108,7 @@ We provide the query functions below (along with corresponding Java API methods)
 | `end-at` | `.endAt()` |
 | `end-before` | `.endBefore()` |
 | `select` | `.select()` |
-| `sort-by`     | `.orderBy()` |
+| `order-by`     | `.orderBy()` |
 | `limit`         | `.limit()` |
 | `offset`         | `.offset()` |
 | `range`          | `.offset().limit()` |
@@ -141,16 +141,16 @@ also need the ids.
 ```clojure
 (-> (f/coll db "positions")
     (f/filter= "account" 1)
-    (f/sort-by "size") ; descending: (f/sort-by "size" :desc) 
+    (f/order-by "size") ; descending: (f/order-by "size" :desc) 
     (f/start-at 10) ; ignore residual positions
     f/pullv) ; 
 ```
-If you have the appropriate indexes, you can `sort-by` multiple fields:
+If you have the appropriate indexes, you can `order-by` multiple fields:
 
 ```clojure
 (-> (f/coll db "positions")
     (f/filter= "account" 1)
-    (f/sort-by "size" :desc "instrument") 
+    (f/order-by "size" :desc "instrument") 
     f/pull)
 ```
 
