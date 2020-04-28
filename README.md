@@ -2,7 +2,7 @@
 [![Clojars Project](https://img.shields.io/clojars/v/polvo/firestore-clj.svg)](https://clojars.org/polvo/firestore-clj)
 [![cljdoc badge](https://cljdoc.org/badge/polvo/firestore-clj)](https://cljdoc.org/d/polvo/firestore-clj/CURRENT)
 
-A Firestore API for Clojure. Provides tools for doing single pulls and writes, streaming real-time data,
+An unofficial Firestore® API for Clojure. Provides tools for doing single pulls and writes, streaming real-time data,
 batched writes and transactions.
 This lib is a wrapper over `com.google.firebase/firebase-admin`. All functions are properly
 type hinted, so no reflection is used. We also try to provide somewhat idiomatic names for the 
@@ -354,6 +354,6 @@ on reads (they are perfomed by the lib automatically on writes).
 
 ## License
 
-Copyright © 2020 Polvo Technologies. 
+Firestore® is a registered trademark of Google LLC. We're not affiliated in any way with Google.
 
 Distributed under the MIT License.
