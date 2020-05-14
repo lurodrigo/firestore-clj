@@ -9,8 +9,19 @@
                  [org.clojure/core.match "1.0.0"]
                  [com.google.firebase/firebase-admin "6.12.2"]
                  [manifold "0.1.8"]]
+  :aot [
+        firestore-clj.google.fake-credentials
+        firestore-clj.google.emulator-channel-configurator
+        ]
+  :profiles {:dev {:dependencies [[com.taoensso/timbre "4.10.0"]
+                                  [com.fzakaria/slf4j-timbre "0.3.19"]
+                                  [com.google.cloud/google-cloud-logging-logback "0.116.0-alpha"]]
+
+                   :source-paths ["test/clj"]
+                   :java-source-paths ["test/java"]}}
   :global-vars {*warn-on-reflection* true}
   :jar-exclusions [#"user\.clj"]
   :uberjar-exclusions [#"user\.clj"]
   :source-paths ["src/clj"]
-  :java-source-paths ["src/java"])
+  :java-source-paths ["src/java"]
+  )
