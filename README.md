@@ -364,6 +364,13 @@ We welcome [PRs](https://github.com/polvotech/firestore-clj/compare). Here are s
 * Define default behavior regarding conversions between `Timestamp` and `java.util.Date`. Currently we perform conversions
 on reads (they are perfomed by the lib automatically on writes).
 
+Maintained by [@lurodrigo](https://github.com/lurodrigo).
+
+Contributions:
+[@codestiff](https://github.com/codestiff) (emulator support).
+
+## Contributors
+
 ## License
 
 Firestore® is a registered trademark of Google LLC. We're not affiliated in any way with Google.
