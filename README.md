@@ -25,6 +25,18 @@ you can just provide the project-id using `default-client`:
 (def db (f/default-client "project-id"))
 ```
 
+**Experimental:** If can also connect to a emulator. For instance, run
+
+```bash
+firebase emulators:start --only firestore
+```
+
+Then try:
+
+```clojure
+(def db (f/emulator-client "local-project-for-testing" "localhost:8080"))
+```
+
 ## Collections, documents, and subcollections
 
 `doc`, `docs`, `coll`, `colls` and `coll-group` are the basic functiones here.
