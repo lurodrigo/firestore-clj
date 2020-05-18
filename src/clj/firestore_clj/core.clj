@@ -5,7 +5,8 @@
             [clojure.java.io :as io]
             [clojure.spec.alpha :as s]
             [clojure.string :as string]
-            [manifold.stream :as st])
+            [manifold.stream :as st]
+            [firestore-clj.google :as google])
   (:import (clojure.lang IAtom)
            (com.google.api.core ApiFuture)
            (com.google.auth.oauth2 GoogleCredentials)
@@ -13,7 +14,8 @@
            (com.google.cloud.firestore Firestore QuerySnapshot CollectionReference EventListener DocumentReference
                                        DocumentSnapshot Query$Direction FieldValue Query ListenerRegistration WriteBatch
                                        Transaction UpdateBuilder Transaction$Function TransactionOptions
-                                       QueryDocumentSnapshot DocumentChange$Type DocumentChange GeoPoint Precondition WriteResult SetOptions)
+                                       QueryDocumentSnapshot DocumentChange$Type DocumentChange GeoPoint Precondition WriteResult
+                                       SetOptions FirestoreOptions FirestoreOptions$Builder)
            (com.google.firebase FirebaseApp FirebaseOptions FirebaseOptions)
            (com.google.firebase.cloud FirestoreClient)
            (java.io Writer)
@@ -52,6 +54,21 @@
                     (.build))]
     (FirebaseApp/initializeApp options)
     (FirestoreClient/getFirestore)))
+
+(defn emulator-client
+  "Gets a client using the emulator."
+  ^Firestore [project-id emulator-host]
+  (let [credentials               (google/mk-fake-credentials)
+        channel-provider          (google/mk-emulator-grpc-channel-provider emulator-host)
+        ^FirestoreOptions options (-> (FirestoreOptions/getDefaultInstance)
+                                      (.toBuilder)
+                                      ^FirestoreOptions$Builder
+                                      (.setProjectId project-id)
+                                      (.setChannelProvider channel-provider)
+                                      ^FirestoreOptions$Builder
+                                      (.setCredentials credentials)
+                                      ^FirestoreOptions (.build))]
+    (.getService options)))
 
 ; BASICS AND REPRESENTATIONS
 
