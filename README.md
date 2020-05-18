@@ -25,7 +25,7 @@ you can just provide the project-id using `default-client`:
 (def db (f/default-client "project-id"))
 ```
 
-**Experimental:** If can also connect to a emulator. For instance, run
+**Experimental:** You can also connect to a emulator. For instance, run
 
 ```bash
 firebase emulators:start --only firestore
