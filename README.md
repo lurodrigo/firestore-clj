@@ -1,6 +1,6 @@
 # firestore-clj 
-[![Clojars Project](https://img.shields.io/clojars/v/polvo/firestore-clj.svg)](https://clojars.org/polvo/firestore-clj)
-[![cljdoc badge](https://cljdoc.org/badge/polvo/firestore-clj)](https://cljdoc.org/d/polvo/firestore-clj/CURRENT)
+[![Clojars Project](https://img.shields.io/clojars/v/lurodrigo/firestore-clj.svg)](https://clojars.org/lurodrigo/firestore-clj)
+[![cljdoc badge](https://cljdoc.org/badge/lurodrigo/firestore-clj)](https://cljdoc.org/d/lurodrigo/firestore-clj/CURRENT)
 
 An unofficial Firestore® API for Clojure. Provides tools for doing single pulls and writes, streaming real-time data,
 batched writes and transactions.
@@ -9,6 +9,11 @@ type hinted, so no reflection is used. We also try to provide somewhat idiomatic
 operations and queries, and idiomatic transactions as well.
 
 ## Getting started
+
+```clojure
+[lurodrigo/firestore-clj "1.2.1"] ; 1.2.1 and newer
+[polvo/firestore-clj "1.2.1"] ; 1.2.1 and earlier
+```
 
 You can use `client-with-creds` to get a client using credentials from a service account.
 

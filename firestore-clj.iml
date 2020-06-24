@@ -1,27 +1,33 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<module cursive.leiningen.project.LeiningenProjectsManager.displayName="polvo/firestore-clj:1.2.1-SNAPSHOT" cursive.leiningen.project.LeiningenProjectsManager.isLeinModule="true" type="JAVA_MODULE" version="4">
+<module cursive.leiningen.project.LeiningenProjectsManager.displayName="lurodrigo/firestore-clj:1.2.1" cursive.leiningen.project.LeiningenProjectsManager.isLeinModule="true" type="JAVA_MODULE" version="4">
   <component name="NewModuleRootManager">
     <output url="file://$MODULE_DIR$/target/classes" />
     <output-test url="file://$MODULE_DIR$/target/classes" />
     <exclude-output />
     <content url="file://$MODULE_DIR$">
       <sourceFolder url="file://$MODULE_DIR$/src/clj" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/test/clj" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/resources" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/src/java" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/dev-resources" isTestSource="false" />
+      <sourceFolder url="file://$MODULE_DIR$/test/java" isTestSource="false" />
       <sourceFolder url="file://$MODULE_DIR$/test" isTestSource="true" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
+    <orderEntry type="library" name="Leiningen: ch.qos.logback/logback-classic:1.2.3" level="project" />
+    <orderEntry type="library" name="Leiningen: ch.qos.logback/logback-core:1.2.3" level="project" />
     <orderEntry type="library" name="Leiningen: clojure-complete:0.2.5" level="project" />
     <orderEntry type="library" name="Leiningen: com.fasterxml.jackson.core/jackson-core:2.9.9" level="project" />
+    <orderEntry type="library" name="Leiningen: com.fzakaria/slf4j-timbre:0.3.19" level="project" />
     <orderEntry type="library" name="Leiningen: com.google.android/annotations:4.1.1.4" level="project" />
     <orderEntry type="library" name="Leiningen: com.google.api-client/google-api-client-gson:1.30.1" level="project" />
     <orderEntry type="library" name="Leiningen: com.google.api-client/google-api-client:1.30.1" level="project" />
     <orderEntry type="library" name="Leiningen: com.google.api.grpc/proto-google-cloud-firestore-admin-v1:1.31.0" level="project" />
     <orderEntry type="library" name="Leiningen: com.google.api.grpc/proto-google-cloud-firestore-v1:1.31.0" level="project" />
     <orderEntry type="library" name="Leiningen: com.google.api.grpc/proto-google-cloud-firestore-v1beta1:0.84.0" level="project" />
+    <orderEntry type="library" name="Leiningen: com.google.api.grpc/proto-google-cloud-logging-v2:0.81.0" level="project" />
     <orderEntry type="library" name="Leiningen: com.google.api.grpc/proto-google-common-protos:1.17.0" level="project" />
     <orderEntry type="library" name="Leiningen: com.google.api.grpc/proto-google-iam-v1:0.12.0" level="project" />
     <orderEntry type="library" name="Leiningen: com.google.api/api-common:1.8.1" level="project" />
@@ -36,6 +42,8 @@
     <orderEntry type="library" name="Leiningen: com.google.cloud/google-cloud-core-http:1.90.0" level="project" />
     <orderEntry type="library" name="Leiningen: com.google.cloud/google-cloud-core:1.90.0" level="project" />
     <orderEntry type="library" name="Leiningen: com.google.cloud/google-cloud-firestore:1.31.0" level="project" />
+    <orderEntry type="library" name="Leiningen: com.google.cloud/google-cloud-logging-logback:0.116.0-alpha" level="project" />
+    <orderEntry type="library" name="Leiningen: com.google.cloud/google-cloud-logging:1.98.0" level="project" />
     <orderEntry type="library" name="Leiningen: com.google.cloud/google-cloud-storage:1.91.0" level="project" />
     <orderEntry type="library" name="Leiningen: com.google.code.findbugs/jsr305:3.0.2" level="project" />
     <orderEntry type="library" name="Leiningen: com.google.code.gson/gson:2.8.5" level="project" />
@@ -50,9 +58,13 @@
     <orderEntry type="library" name="Leiningen: com.google.oauth-client/google-oauth-client:1.30.1" level="project" />
     <orderEntry type="library" name="Leiningen: com.google.protobuf/protobuf-java-util:3.9.1" level="project" />
     <orderEntry type="library" name="Leiningen: com.google.protobuf/protobuf-java:3.10.0" level="project" />
+    <orderEntry type="library" name="Leiningen: com.taoensso/encore:2.91.0" level="project" />
+    <orderEntry type="library" name="Leiningen: com.taoensso/timbre:4.10.0" level="project" />
+    <orderEntry type="library" name="Leiningen: com.taoensso/truss:1.5.0" level="project" />
     <orderEntry type="library" name="Leiningen: commons-codec:1.11" level="project" />
     <orderEntry type="library" name="Leiningen: commons-logging:1.2" level="project" />
     <orderEntry type="library" name="Leiningen: io.aleph/dirigiste:0.1.5" level="project" />
+    <orderEntry type="library" name="Leiningen: io.aviso/pretty:0.1.33" level="project" />
     <orderEntry type="library" name="Leiningen: io.grpc/grpc-alts:1.23.0" level="project" />
     <orderEntry type="library" name="Leiningen: io.grpc/grpc-api:1.23.0" level="project" />
     <orderEntry type="library" name="Leiningen: io.grpc/grpc-auth:1.23.0" level="project" />
@@ -87,6 +99,7 @@
     <orderEntry type="library" name="Leiningen: org.clojure/core.specs.alpha:0.2.44" level="project" />
     <orderEntry type="library" name="Leiningen: org.clojure/spec.alpha:0.2.176" level="project" />
     <orderEntry type="library" name="Leiningen: org.clojure/tools.logging:0.3.1" level="project" />
+    <orderEntry type="library" name="Leiningen: org.clojure/tools.reader:0.10.0" level="project" />
     <orderEntry type="library" name="Leiningen: org.codehaus.mojo/animal-sniffer-annotations:1.14" level="project" />
     <orderEntry type="library" name="Leiningen: org.slf4j/slf4j-api:1.7.25" level="project" />
     <orderEntry type="library" name="Leiningen: org.threeten/threetenbp:1.3.3" level="project" />
