@@ -11,8 +11,8 @@ operations and queries, and idiomatic transactions as well.
 ## Getting started
 
 ```clojure
-[lurodrigo/firestore-clj "1.2.1"] ; 1.2.1 and newer
-[polvo/firestore-clj "1.2.1"] ; 1.2.1 and earlier
+[lurodrigo/firestore-clj "1.2.1"] ; new releases under lurodrigo from 1.2.1 on
+[polvo/firestore-clj "1.2.1"] ; and older releases
 ```
 
 You can use `client-with-creds` to get a client using credentials from a service account.
