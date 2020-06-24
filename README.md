@@ -30,13 +30,13 @@ you can just provide the project-id using `default-client`:
 (def db (f/default-client "project-id"))
 ```
 
-**Experimental:** You can also connect to a emulator. For instance, run
+**Experimental:** You can also connect to an emulator. For instance, run
 
 ```bash
 firebase emulators:start --only firestore
 ```
 
-Then try:
+Make sure the environment variable `FIRESTORE_EMULATOR_HOST` is set according to the output above. Then try:
 
 ```clojure
 (def db (f/emulator-client "local-project-for-testing" "localhost:8080"))
