@@ -2,6 +2,8 @@
 [![Clojars Project](https://img.shields.io/clojars/v/lurodrigo/firestore-clj.svg)](https://clojars.org/lurodrigo/firestore-clj)
 [![cljdoc badge](https://cljdoc.org/badge/lurodrigo/firestore-clj)](https://cljdoc.org/d/lurodrigo/firestore-clj/CURRENT)
 
+**We are currently looking for maintainers!** Contact-me at me@lurodrigo.com if you're interested :)
+
 An unofficial Firestore® API for Clojure. Provides tools for doing single pulls and writes, streaming real-time data,
 batched writes and transactions.
 This lib is a wrapper over `com.google.firebase/firebase-admin`. All functions are properly
