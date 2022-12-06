@@ -567,8 +567,7 @@
 (defn update-field!
   "Updates a single field of a document by applying a function to it."
   [^DocumentReference dr field f & args]
-  (update! dr (fn [data]
-                (apply update data field f args))))
+  (update! dr #(apply update % field f args)))
 
 (defn map!
   "Updates all docs in a vector or query by applying a function to them"
